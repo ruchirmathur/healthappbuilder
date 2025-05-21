@@ -1,5 +1,5 @@
 {
-  "name": "admin-app",
+  "name": "healthappbuilder",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -50,5 +50,8 @@
   },
   "devDependencies": {
     "@types/uuid": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
