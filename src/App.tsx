@@ -8,7 +8,7 @@ export const App = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<AdminDashboard />}} />
+      <Route path="/" element={<AdminDashboard />} />
        <Route
         path="/admin"
         element={<AuthenticationGuard component={<AdminDashboard />}}
