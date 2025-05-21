@@ -73,9 +73,10 @@ function fetchWithTimeout(resource: RequestInfo, options: RequestInit = {}, time
 }
 
 export const AdminDashboard: React.FC = () => {
-  const { logout, user } = useAuth0();
+  const { logout, user ,getIdTokenClaims,isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
   const [appsData, setAppsData] = useState<AppData[]>([]);
+  const [orgName, setOrgName] =useState<string | undefined>(); 
   const [workflowData, setWorkflowData] = useState<WorkflowData>({
     id: "",
     appName: "",
@@ -92,6 +93,7 @@ export const AdminDashboard: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  
   // Fetch Existing Apps Data on "Review Existing App" Selection
   const fetchAppsData = async () => {
     setApiError(null);
@@ -120,6 +122,14 @@ export const AdminDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+    useEffect(() => {
+     if (isAuthenticated) {
+      getIdTokenClaims().then((claims) => {
+        return setOrgName(claims?.org_name); // or claims['org_name']
+      });
+    }
+  }, [getIdTokenClaims, isAuthenticated]);
 
   useEffect(() => {
     if (currentView === "Review Existing App") {
@@ -231,7 +241,7 @@ export const AdminDashboard: React.FC = () => {
             Build Multi Tenant GenAI App Builder
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography sx={{ mr: 2 }}>{user?.name}</Typography>
+            <Typography sx={{ mr: 2 }}>{user?.org_id}{orgName}</Typography>
             <IconButton
               color="inherit"
               edge="end"
