@@ -6,7 +6,6 @@ import { AutoLogin } from "./pages/login";
 import { AuthenticationGuard } from "./pages/authentication-guard";
 
 export const App = () => {
-  const { isLoading } = useAuth0();
 
   return (
     <Routes>
