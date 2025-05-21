@@ -241,7 +241,7 @@ export const AdminDashboard: React.FC = () => {
             Build Multi Tenant GenAI App Builder
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography sx={{ mr: 2 }}>{user?.org_id}{orgName}</Typography>
+            <Typography sx={{ mr: 2 }}> {user?.name} — {orgName}</Typography>
             <IconButton
               color="inherit"
               edge="end"
