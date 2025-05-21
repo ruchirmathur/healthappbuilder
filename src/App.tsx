@@ -8,10 +8,10 @@ export const App = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<AutoLogin />} />
+      <Route path="/" element={<AdminDashboard />}} />
        <Route
         path="/admin"
-        element={<AuthenticationGuard component={AdminDashboard} />}
+        element={<AuthenticationGuard component={<AdminDashboard />}}
       />
     </Routes>
   );
