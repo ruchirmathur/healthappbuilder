@@ -1,12 +1,10 @@
 import React from "react";
-import { useAuth0 } from "@auth0/auth0-react";
 import { Route, Routes } from "react-router-dom";
 import { AdminDashboard } from "./pages/admin";
 import { AutoLogin } from "./pages/login";
 import { AuthenticationGuard } from "./pages/authentication-guard";
 
 export const App = () => {
-  const { isLoading } = useAuth0();
 
   return (
     <Routes>
