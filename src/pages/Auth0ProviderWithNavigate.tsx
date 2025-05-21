@@ -12,7 +12,7 @@ export const Auth0ProviderWithNavigate: React.FC<Auth0ProviderWithNavigateProps>
 
   const domain = "dev-heroxqvns2qzfndo.us.auth0.com";
   const clientId = "vtQwQZ9VJnv41OE74z2qFl6BP1rh4ZXB";
-  const redirectUri = "http://localhost:3000/admin";
+  const redirectUri = "https://polite-field-03509930f.6.azurestaticapps.net/admin";
 
   const onRedirectCallback = (appState?: { returnTo?: string }) => {
     navigate(appState?.returnTo || window.location.pathname);
