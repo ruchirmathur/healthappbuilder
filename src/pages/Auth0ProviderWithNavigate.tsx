@@ -28,6 +28,7 @@ export const Auth0ProviderWithNavigate: React.FC<Auth0ProviderWithNavigateProps>
       clientId={clientId}
       authorizationParams={{
         redirect_uri: redirectUri,
+        organization: "healthappbuilder",
       }}
       onRedirectCallback={onRedirectCallback}
     >
