@@ -3,7 +3,7 @@ name: Azure Static Web Apps CI/CD
 on:
   workflow_dispatch:
     inputs:
-      okta_client_id:
+      client_id:  # Changed from okta_client_id to match API input
         description: 'Okta Client ID'
         required: false
       okta_domain:
@@ -54,7 +54,7 @@ jobs:
           output_location: "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
         env:
-          REACT_APP_OKTA_CLIENT_ID: ${{ github.event.inputs.okta_client_id || secrets.REACT_APP_OKTA_CLIENT_ID }}
+          REACT_APP_OKTA_CLIENT_ID: ${{ github.event.inputs.client_id || secrets.REACT_APP_OKTA_CLIENT_ID }}  # Changed to client_id
           REACT_APP_OKTA_DOMAIN: ${{ github.event.inputs.okta_domain || secrets.REACT_APP_OKTA_DOMAIN }}
           REACT_APP_REDIRECT_URL: ${{ github.event.inputs.redirect_url || secrets.REACT_APP_REDIRECT_URL }}
 
