@@ -9,16 +9,18 @@ interface Auth0ProviderWithNavigateProps {
 export const Auth0ProviderWithNavigate: React.FC<Auth0ProviderWithNavigateProps> = ({ children }) => {
   const navigate = useNavigate();
 
-
-  const domain = "dev-heroxqvns2qzfndo.us.auth0.com";
-  const clientId = "vtQwQZ9VJnv41OE74z2qFl6BP1rh4ZXB";
-  const redirectUri = "https://polite-field-03509930f.6.azurestaticapps.net/admin";
+  // Read from environment variables injected at build time
+  const domain = process.env.REACT_APP_OKTA_DOMAIN || "";
+  const clientId = process.env.REACT_APP_OKTA_CLIENT_ID || "";
+  const redirectUri = process.env.REACT_APP_REDIRECT_URL || window.location.origin;
 
   const onRedirectCallback = (appState?: { returnTo?: string }) => {
     navigate(appState?.returnTo || window.location.pathname);
   };
 
+  // Optionally, show a warning if not configured
   if (!(domain && clientId && redirectUri)) {
+    console.warn("Auth0ProviderWithNavigate: Missing Auth0 configuration.");
     return null;
   }
 
@@ -28,7 +30,6 @@ export const Auth0ProviderWithNavigate: React.FC<Auth0ProviderWithNavigateProps>
       clientId={clientId}
       authorizationParams={{
         redirect_uri: redirectUri,
-        organization: "healthappbuilder",
       }}
       onRedirectCallback={onRedirectCallback}
     >
