@@ -1,6 +1,17 @@
 name: Azure Static Web Apps CI/CD
 
 on:
+  workflow_dispatch:
+    inputs:
+      okta_client_id:
+        description: 'Okta Client ID'
+        required: false
+      okta_domain:
+        description: 'Okta Domain'
+        required: false
+      redirect_url:
+        description: 'Redirect URL'
+        required: false
   push:
     branches:
       - main
@@ -11,7 +22,7 @@ on:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
@@ -38,13 +49,14 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_POLITE_FIELD_03509930F }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
+          app_location: "/"
+          api_location: ""
+          output_location: "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
-          ###### End of Repository/Build Configurations ######
+        env:
+          REACT_APP_OKTA_CLIENT_ID: ${{ github.event.inputs.okta_client_id || secrets.REACT_APP_OKTA_CLIENT_ID }}
+          REACT_APP_OKTA_DOMAIN: ${{ github.event.inputs.okta_domain || secrets.REACT_APP_OKTA_DOMAIN }}
+          REACT_APP_REDIRECT_URL: ${{ github.event.inputs.redirect_url || secrets.REACT_APP_REDIRECT_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
