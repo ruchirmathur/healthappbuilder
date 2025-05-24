@@ -13,7 +13,7 @@ on:
         description: 'Redirect URL'
         required: false
       api_url:
-        description: 'API URL'
+        description: 'API Host for React App (e.g., http://127.0.0.1:5000)'
         required: false
   push:
     branches:
@@ -57,7 +57,7 @@ jobs:
           output_location: "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
         env:
-          REACT_APP_OKTA_CLIENT_ID: ${{ github.event.inputs.client_id || secrets.REACT_APP_OKTA_CLIENT_ID }}  # Changed to client_id
+          REACT_APP_OKTA_CLIENT_ID: ${{ github.event.inputs.client_id || secrets.REACT_APP_OKTA_CLIENT_ID }}
           REACT_APP_OKTA_DOMAIN: ${{ github.event.inputs.okta_domain || secrets.REACT_APP_OKTA_DOMAIN }}
           REACT_APP_REDIRECT_URL: ${{ github.event.inputs.redirect_url || secrets.REACT_APP_REDIRECT_URL }}
           REACT_APP_API_HOST: ${{ github.event.inputs.api_url || secrets.REACT_APP_API_HOST }}
