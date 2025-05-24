@@ -297,11 +297,12 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
-    }
-  }, [isAuthenticated]);
+useEffect(() => {
+  if (isAuthenticated) {
+    getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
+  }
+}, [isAuthenticated, getIdTokenClaims]);
+
 
   useEffect(() => {
     if (currentView === "Review Existing App") fetchAppsData();
