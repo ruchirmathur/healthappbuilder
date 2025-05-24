@@ -36,8 +36,6 @@ import {
 import {
   AccountCircle,
   CheckCircle,
-  ExpandMore,
-  ExpandLess,
   CloudUpload,
   Security,
   Code,
