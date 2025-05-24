@@ -9,6 +9,7 @@ import {
   Box,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Button,
   Table,
@@ -22,30 +23,78 @@ import {
   CardContent,
   Stepper,
   Step,
-  StepButton,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
+  StepLabel,
   CircularProgress,
   TextField,
   Alert,
+  Collapse,
+  Divider,
+  useTheme,
+  Fade,
+  Tooltip,
 } from "@mui/material";
-import { AccountCircle } from "@mui/icons-material";
+import {
+  AccountCircle,
+  CheckCircle,
+  ExpandMore,
+  ExpandLess,
+  CloudUpload,
+  Security,
+  Code,
+  Build,
+  Palette,
+  Dashboard as DashboardIcon,
+  ArrowForward,
+  ArrowBack,
+  LocalHospital,
+  Feedback,
+  Group,
+  PriceChange,
+  RecordVoiceOver,
+  AddCircleOutline,
+  ListAlt,
+} from "@mui/icons-material";
 import { useAuth0 } from "@auth0/auth0-react";
 import { v4 as uuidv4 } from "uuid";
 import { ColorPicker, useColor } from "react-color-palette";
 import "react-color-palette/css";
 
 const drawerWidth = 240;
+const API_HOST = process.env.REACT_APP_API_HOST || "http://127.0.0.1:5000";
+const RETRIEVE_ALL_URL = `${API_HOST}/retrieve-all`;
+const WRITE_URL = `${API_HOST}/write`;
+const TRIGGER_DEPLOY_URL = `${API_HOST}/trigger-deploy`;
+const CREATE_APP_URL = `${API_HOST}/create-app`;
 
-const steps = ["App Name", "Use Cases", "Frontend", "Build", "Review"];
+const steps = [
+  "App Details",
+  "Select Use Case",
+  "Appearance",
+  "Build & Deploy",
+  "Review",
+];
 
 const useCaseOptions = [
-  "Healthcare Underwriter Dashboard",
-  "User Feedback Analysis Dashboard",
-  "Member Dashboard",
-  "Healthcare Price Transparency",
-  "Voice enabled Healthcare Price Transparency",
+  {
+    label: "Healthcare Underwriter Dashboard",
+    icon: <LocalHospital sx={{ fontSize: 32, color: "#1976d2" }} />,
+  },
+  {
+    label: "User Feedback Analysis Dashboard",
+    icon: <Feedback sx={{ fontSize: 32, color: "#43a047" }} />,
+  },
+  {
+    label: "Member Dashboard",
+    icon: <Group sx={{ fontSize: 32, color: "#fbc02d" }} />,
+  },
+  {
+    label: "Healthcare Price Transparency",
+    icon: <PriceChange sx={{ fontSize: 32, color: "#6d4c41" }} />,
+  },
+  {
+    label: "Voice enabled Healthcare Price Transparency",
+    icon: <RecordVoiceOver sx={{ fontSize: 32, color: "#d84315" }} />,
+  },
 ];
 
 interface AppData {
@@ -63,22 +112,45 @@ interface WorkflowData {
   color?: string;
 }
 
-function fetchWithTimeout(resource: RequestInfo, options: RequestInit = {}, timeout = 10000) {
-  return Promise.race([
-    fetch(resource, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("API did not respond in time.")), timeout)
-    ),
-  ]);
+interface FormField {
+  name: string;
+  label: string;
+  helper: string;
+  type?: string;
 }
 
-const API_HOST = process.env.REACT_APP_API_HOST;
+const apiFields: FormField[] = [
+  { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
+  { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
+  { name: "COSMOS_DB_URL", label: "Cosmos DB Endpoint", helper: "e.g. https://your-cosmos.documents.azure.com:443/" },
+  { name: "COSMOS_DB_KEY", label: "Cosmos DB Primary Key", helper: "Find this in your Azure Cosmos DB Keys section", type: "password" },
+  { name: "DATABASE_NAME", label: "Database Name", helper: "The name of your Cosmos DB database" },
+  { name: "CONTAINER_NAME", label: "Container Name", helper: "The name of your Cosmos DB container" },
+];
+
+const webSecFields: FormField[] = [
+  { name: "app", label: "App Name", helper: "The application name" },
+  { name: "org_name", label: "Organization Name", helper: "Your organization's display name" },
+  { name: "email", label: "Contact Email", helper: "Contact email for notifications", type: "email" },
+  { name: "callback_urls", label: "Callback URL", helper: "Allowed callback URL (OAuth/OIDC)" },
+  { name: "logout_urls", label: "Logout URL", helper: "Allowed logout redirect URL" },
+  { name: "initiate_login_uri", label: "Initiate Login URI", helper: "e.g. https://yourapp.com/login" },
+];
+
+const webBuildFields: FormField[] = [
+  { name: "repo", label: "Frontend Repository URL", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
+  { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your frontend deployment" },
+  { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider" },
+  { name: "okta_domain", label: "Okta Domain", helper: "e.g. dev-123456.okta.com" },
+  { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login" },
+];
 
 export const AdminDashboard: React.FC = () => {
-  const { logout, user ,getIdTokenClaims,isAuthenticated } = useAuth0();
+  const theme = useTheme();
+  const { logout, user, getIdTokenClaims, isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
   const [appsData, setAppsData] = useState<AppData[]>([]);
-  const [orgName, setOrgName] =useState<string | undefined>(); 
+  const [orgName, setOrgName] = useState<string | undefined>();
   const [workflowData, setWorkflowData] = useState<WorkflowData>({
     id: "",
     appName: "",
@@ -86,39 +158,142 @@ export const AdminDashboard: React.FC = () => {
     selectedUseCase: "",
     color: "",
   });
-  const [color, setColor] = useColor("#121212");
+  const [color, setColor] = useColor("#1976d2");
   const [activeStep, setActiveStep] = useState(0);
-
   const [appNameError, setAppNameError] = useState(false);
   const [customerNameError, setCustomerNameError] = useState(false);
-
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [buildExpandedStep, setBuildExpandedStep] = useState(0);
+  const [buildCompleted, setBuildCompleted] = useState<{ [key: number]: boolean }>({});
+  const [apiDeploying, setApiDeploying] = useState(false);
+  const [creatingApp, setCreatingApp] = useState(false);
 
-  // Fetch Existing Apps Data on "Review Existing App" Selection
+  const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
+    repo: "",
+    workflow_id: "",
+    COSMOS_DB_URL: "",
+    COSMOS_DB_KEY: "",
+    DATABASE_NAME: "",
+    CONTAINER_NAME: "",
+  });
+
+  const [webSecForm, setWebSecForm] = useState({
+    app: "",
+    org_name: "",
+    email: "",
+    callback_urls: "",
+    logout_urls: "",
+    initiate_login_uri: "",
+  });
+
+  const [webBuildForm, setWebBuildForm] = useState<{ [key: string]: string }>({
+    repo: "",
+    workflow_id: "",
+    client_id: "",
+    okta_domain: "",
+    redirect_url: "",
+  });
+
+  useEffect(() => {
+    if (workflowData.appName && workflowData.customerName) {
+      setWebSecForm(prev => ({
+        ...prev,
+        app: workflowData.appName,
+        org_name: workflowData.customerName
+      }));
+    }
+  }, [workflowData.appName, workflowData.customerName]);
+
+  const triggerDeploy = async () => {
+    setApiDeploying(true);
+    setApiError(null);
+    try {
+      const response = await fetch(TRIGGER_DEPLOY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repo: apiForm.repo,
+          workflow_id: apiForm.workflow_id,
+          inputs: {
+            COSMOS_DB_URL: apiForm.COSMOS_DB_URL,
+            COSMOS_DB_KEY: apiForm.COSMOS_DB_KEY,
+            DATABASE_NAME: apiForm.DATABASE_NAME,
+            CONTAINER_NAME: apiForm.CONTAINER_NAME
+          }
+        }),
+      });
+      if (!response.ok) throw new Error("Deployment failed");
+      setBuildCompleted(prev => ({ ...prev, 0: true }));
+      setBuildExpandedStep(1);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Deployment error");
+    } finally {
+      setApiDeploying(false);
+    }
+  };
+
+  const createApp = async () => {
+    setCreatingApp(true);
+    setApiError(null);
+    try {
+      const response = await fetch(CREATE_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...webBuildForm,
+          appName: workflowData.appName,
+          orgName: workflowData.customerName,
+          color: color.hex,
+          useCase: workflowData.selectedUseCase
+        }),
+      });
+      if (!response.ok) throw new Error("App creation failed");
+      setBuildCompleted(prev => ({ ...prev, 2: true }));
+      setActiveStep(4);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Creation error");
+    } finally {
+      setCreatingApp(false);
+    }
+  };
+
+  const handleBuildStepContinue = async (step: number) => {
+    if (step === 0) {
+      if (validateApiForm()) await triggerDeploy();
+    } else if (step === 1) {
+      if (validateWebSecForm()) {
+        setBuildCompleted(prev => ({ ...prev, 1: true }));
+        setBuildExpandedStep(2);
+      }
+    } else if (step === 2) {
+      if (validateWebBuildForm()) await createApp();
+    }
+  };
+
+  const validateApiForm = () => apiFields.every(f => apiForm[f.name].trim() !== "");
+  const validateWebSecForm = () =>
+    webSecForm.app.trim() &&
+    webSecForm.org_name.trim() &&
+    webSecForm.callback_urls.trim() &&
+    webSecForm.logout_urls.trim();
+  const validateWebBuildForm = () => webBuildFields.every(f => webBuildForm[f.name].trim() !== "");
+
   const fetchAppsData = async () => {
     setApiError(null);
     setLoading(true);
     try {
-      const response: any = await fetchWithTimeout(`${API_HOST}/retrieve-all`);
-      if (!response.ok) {
-        throw new Error(`Error fetching apps: ${response.statusText}`);
-      }
+      const response = await fetch(RETRIEVE_ALL_URL);
+      if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setAppsData(
-          data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            url: item.url,
-            status: item.status,
-          }))
-        );
-      } else {
-        throw new Error("Invalid data format from server.");
-      }
-    } catch (error: any) {
-      setApiError(error.message || "Failed to fetch applications.");
+      setAppsData(data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        url: item.url,
+        status: item.status,
+      })));
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Fetch error");
     } finally {
       setLoading(false);
     }
@@ -126,130 +301,200 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      getIdTokenClaims().then((claims) => {
-        return setOrgName(claims?.org_name); // or claims['org_name']
-      });
+      getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
     }
-  }, [getIdTokenClaims, isAuthenticated]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (currentView === "Review Existing App") {
-      fetchAppsData();
-    }
-    // eslint-disable-next-line
+    if (currentView === "Review Existing App") fetchAppsData();
   }, [currentView]);
 
-  // Assign a UUID when starting a new workflow
   useEffect(() => {
     if (activeStep === 0 && !workflowData.id) {
       setWorkflowData((prev) => ({ ...prev, id: uuidv4() }));
     }
   }, [activeStep, workflowData.id]);
 
-  // Handle Next Button Click
   const handleNext = async () => {
     setApiError(null);
-
     if (activeStep === 0) {
       const isAppNameEmpty = !workflowData.appName.trim();
-      const isCustomerNameEmpty = !workflowData.customerName?.trim();
+      const isCustomerNameEmpty = !workflowData.customerName.trim();
       setAppNameError(isAppNameEmpty);
       setCustomerNameError(isCustomerNameEmpty);
-      if (isAppNameEmpty || isCustomerNameEmpty) {
-        return;
-      }
+      if (isAppNameEmpty || isCustomerNameEmpty) return;
     }
-
-    // Always include id and TenantId (from customerName) at the top level
-    let payload: any = {
-      id: workflowData.id,
-      TenantId: workflowData.customerName,
-      appName: workflowData.appName,
-      selectedUseCase: workflowData.selectedUseCase,
-    };
-    // Only include color from step 2 onward
-    if (activeStep >= 2) {
-      payload.color = color.hex;
-    }
-
-    // Update workflowData state with color when on or after step 2
-    if (activeStep >= 2) {
-      setWorkflowData((prev) => ({ ...prev, color: color.hex }));
-    }
-
     setLoading(true);
     try {
-      // On last step before review, submit to /write
-      if (activeStep === 3) {
-        const response: any = await fetchWithTimeout(`${API_HOST}/write`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-          throw new Error(`Error saving app: ${response.statusText}`);
-        }
-        setCurrentView("Review Existing App");
-        setLoading(false);
-        return;
-      }
-
-      // API call on every Next (except last step)
-      const response: any = await fetchWithTimeout(`${API_HOST}/write`, {
+      const response = await fetch(WRITE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...payload,
-          step: activeStep,
+          id: workflowData.id,
+          TenantId: workflowData.customerName,
+          appName: workflowData.appName,
+          selectedUseCase: workflowData.selectedUseCase,
+          ...(activeStep >= 2 && { color: color.hex })
         }),
       });
-      if (!response.ok) {
-        throw new Error(`Step API error: ${response.statusText}`);
-      }
-      setActiveStep(activeStep + 1);
-    } catch (error: any) {
-      setApiError(error.message || "API call failed or did not respond.");
+      if (!response.ok) throw new Error("API error");
+      setActiveStep(prev => prev + 1);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "API error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Back Button Click
   const handleBack = () => {
     if (activeStep > 0) {
-      setActiveStep(activeStep - 1);
+      setActiveStep(prev => prev - 1);
       setApiError(null);
     }
   };
 
+  const renderBuildStep = () => (
+    <Card sx={{ mb: 2, boxShadow: theme.shadows[4], borderRadius: 4, bgcolor: "#f8fafb" }}>
+      <CardContent>
+        <Typography variant="h5" sx={{ mb: 3, display: "flex", alignItems: "center", color: theme.palette.primary.main }}>
+          <Build sx={{ mr: 1.5, fontSize: 32 }} />
+          Build & Deploy
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Box sx={{ mb: 2 }}>
+          <Box onClick={() => setBuildExpandedStep(0)} sx={{ p: 2, cursor: "pointer" }}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: "50%",
+              bgcolor: buildCompleted[0] ? theme.palette.success.main : theme.palette.background.paper,
+              display: "flex", alignItems: "center", justifyContent: "center", mr: 2,
+              border: `2px solid ${theme.palette.divider}`,
+            }}>
+              {buildCompleted[0] ? <CheckCircle color="inherit" /> : <CloudUpload color="action" />}
+            </Box>
+            <Typography variant="h6">Backend Configuration</Typography>
+          </Box>
+          <Collapse in={buildExpandedStep === 0}>
+            <Box sx={{ pl: 6 }}>
+              {apiFields.map(field => (
+                <TextField
+                  key={field.name}
+                  fullWidth
+                  label={field.label}
+                  value={apiForm[field.name]}
+                  onChange={e => setApiForm({ ...apiForm, [field.name]: e.target.value })}
+                  helperText={field.helper}
+                  type={field.type || "text"}
+                  sx={{ mb: 3 }}
+                />
+              ))}
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => handleBuildStepContinue(0)}
+                  disabled={!validateApiForm() || apiDeploying}
+                  endIcon={apiDeploying ? <CircularProgress size={20} /> : <ArrowForward />}
+                >
+                  {apiDeploying ? "Deploying..." : "Continue"}
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+        </Box>
+        <Box sx={{ mb: 2 }}>
+          <Box onClick={() => buildCompleted[0] && setBuildExpandedStep(1)} sx={{ p: 2 }}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: "50%",
+              bgcolor: buildCompleted[1] ? theme.palette.success.main : theme.palette.background.paper,
+              display: "flex", alignItems: "center", justifyContent: "center", mr: 2,
+              border: `2px solid ${theme.palette.divider}`,
+            }}>
+              {buildCompleted[1] ? <CheckCircle color="inherit" /> : <Security color="action" />}
+            </Box>
+            <Typography variant="h6">Security & Auth Configuration</Typography>
+          </Box>
+          <Collapse in={buildExpandedStep === 1}>
+            <Box sx={{ pl: 6 }}>
+              {webSecFields.map(field => (
+                <TextField
+                  key={field.name}
+                  fullWidth
+                  label={field.label}
+                  value={(webSecForm as any)[field.name]}
+                  onChange={e => setWebSecForm({ ...webSecForm, [field.name]: e.target.value })}
+                  helperText={field.helper}
+                  type={field.type || "text"}
+                  disabled={field.name === "app" || field.name === "org_name"}
+                  sx={{ mb: 3 }}
+                />
+              ))}
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => handleBuildStepContinue(1)}
+                  disabled={!validateWebSecForm()}
+                  sx={{ borderRadius: 3, px: 4 }}
+                  endIcon={<ArrowForward />}
+                >
+                  Continue
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+        </Box>
+        <Box sx={{ mb: 2 }}>
+          <Box onClick={() => buildCompleted[1] && setBuildExpandedStep(2)} sx={{ p: 2 }}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: "50%",
+              bgcolor: buildCompleted[2] ? theme.palette.success.main : theme.palette.background.paper,
+              display: "flex", alignItems: "center", justifyContent: "center", mr: 2,
+              border: `2px solid ${theme.palette.divider}`,
+            }}>
+              {buildCompleted[2] ? <CheckCircle color="inherit" /> : <Code color="action" />}
+            </Box>
+            <Typography variant="h6">Frontend Deployment</Typography>
+          </Box>
+          <Collapse in={buildExpandedStep === 2}>
+            <Box sx={{ pl: 6 }}>
+              {webBuildFields.map(field => (
+                <TextField
+                  key={field.name}
+                  fullWidth
+                  label={field.label}
+                  value={webBuildForm[field.name]}
+                  onChange={e => setWebBuildForm({ ...webBuildForm, [field.name]: e.target.value })}
+                  helperText={field.helper}
+                  sx={{ mb: 3 }}
+                />
+              ))}
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => handleBuildStepContinue(2)}
+                  disabled={!validateWebBuildForm() || creatingApp}
+                  endIcon={creatingApp ? <CircularProgress size={20} /> : <CheckCircle />}
+                >
+                  {creatingApp ? "Creating..." : "Deploy Now"}
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: "#1976d2",
-        }}
-      >
+      <AppBar position="fixed" sx={{ zIndex: theme => theme.zIndex.drawer + 1, backgroundColor: "#153a5b" }}>
         <Toolbar>
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ flexGrow: 1, textAlign: "center" }}
-          >
-            Build Multi Tenant GenAI App Builder
+          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
+            <DashboardIcon sx={{ mr: 1 }} />
+            Multi-Tenant GenAI App Builder
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography sx={{ mr: 2 }}> {user?.name} — {orgName}</Typography>
-            <IconButton
-              color="inherit"
-              edge="end"
-              onClick={() =>
-                logout({ logoutParams: { returnTo: window.location.origin } })
-              }
-            >
+            <Typography sx={{ mr: 2 }}>{user?.name} — {orgName}</Typography>
+            <IconButton color="inherit" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
               <AccountCircle />
             </IconButton>
           </Box>
@@ -263,27 +508,61 @@ export const AdminDashboard: React.FC = () => {
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: "border-box",
+            background: "#1a2740",
+            borderRight: `1px solid #223355`,
+            color: "#fff",
+            pt: 2,
           },
         }}
       >
         <Toolbar />
         <List>
-          {["Create a New App", "Review Existing App"].map((text) => (
-            <ListItemButton
-              key={text}
-              selected={currentView === text}
-              onClick={() => setCurrentView(text)}
-            >
-              <ListItemText primary={text} />
-            </ListItemButton>
-          ))}
+          <ListItemButton
+            selected={currentView === "Create a New App"}
+            onClick={() => setCurrentView("Create a New App")}
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "#1976d2",
+                color: "#fff",
+                "&:hover": { bgcolor: "#1565c0" },
+              },
+              borderRadius: 2,
+              mx: 1,
+              my: 0.5,
+              mb: 1,
+            }}
+          >
+            <ListItemIcon sx={{ color: "inherit" }}>
+              <AddCircleOutline />
+            </ListItemIcon>
+            <ListItemText primary="Create a New App" />
+          </ListItemButton>
+          <ListItemButton
+            selected={currentView === "Review Existing App"}
+            onClick={() => setCurrentView("Review Existing App")}
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "#1976d2",
+                color: "#fff",
+                "&:hover": { bgcolor: "#1565c0" },
+              },
+              borderRadius: 2,
+              mx: 1,
+              my: 0.5,
+            }}
+          >
+            <ListItemIcon sx={{ color: "inherit" }}>
+              <ListAlt />
+            </ListItemIcon>
+            <ListItemText primary="Review Existing App" />
+          </ListItemButton>
         </List>
       </Drawer>
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          bgcolor: "background.default",
+          bgcolor: "#132238",
           p: 4,
           display: "flex",
           justifyContent: "center",
@@ -295,12 +574,12 @@ export const AdminDashboard: React.FC = () => {
           <Card
             sx={{
               width: "100%",
-              maxWidth: 700,
+              maxWidth: 1200,
               mx: "auto",
-              mt: 8,
-              borderRadius: 5,
-              boxShadow: 12,
-              bgcolor: "#fff",
+              mt: 6,
+              borderRadius: 6,
+              boxShadow: 14,
+              bgcolor: "#f7fafd",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
@@ -322,242 +601,314 @@ export const AdminDashboard: React.FC = () => {
                   {apiError}
                 </Alert>
               )}
-              <Stepper nonLinear activeStep={activeStep} sx={{ mb: 3 }}>
+              <Stepper alternativeLabel activeStep={activeStep} sx={{ mb: 5 }}>
                 {steps.map((label, index) => (
-                  <Step key={label}>
-                    <StepButton onClick={() => setActiveStep(index)}>
-                      {label}
-                    </StepButton>
+                  <Step key={label} completed={activeStep > index}>
+                    <StepLabel>{label}</StepLabel>
                   </Step>
                 ))}
               </Stepper>
               {activeStep === 0 && (
-                <Box
-                  sx={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3,
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography
-                    variant="h4"
+                <Fade in>
+                  <Box
                     sx={{
-                      mb: 1,
-                      fontWeight: 700,
-                      textAlign: "center",
-                      letterSpacing: 1,
-                      color: "#1976d2",
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 3,
+                      alignItems: "center",
                     }}
                   >
-                    Enter Application Details
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      mb: 1,
-                      textAlign: "center",
-                      color: "text.secondary",
-                    }}
-                  >
-                    Please provide the <b>App Name</b> and <b>Customer Name</b> to proceed.
-                  </Typography>
-                  <Box sx={{ width: "80%" }}>
-                    <TextField
-                      fullWidth
-                      required
-                      variant="outlined"
-                      label="App Name"
-                      value={workflowData.appName}
-                      onChange={(e) =>
-                        setWorkflowData({ ...workflowData, appName: e.target.value })
-                      }
-                      error={appNameError}
-                      helperText={appNameError ? "App Name is required" : ""}
-                      inputProps={{ style: { fontSize: 18 } }}
-                      InputLabelProps={{ style: { fontSize: 18 } }}
+                    <Typography
+                      variant="h4"
                       sx={{
-                        bgcolor: "#fafbfc",
-                        borderRadius: 2,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
-                        mb: 3,
+                        mb: 1,
+                        fontWeight: 700,
+                        textAlign: "center",
+                        letterSpacing: 1,
+                        color: "#1976d2",
                       }}
-                    />
-                    <TextField
-                      fullWidth
-                      required
-                      variant="outlined"
-                      label="Customer Name"
-                      value={workflowData.customerName}
-                      onChange={(e) =>
-                        setWorkflowData({
-                          ...workflowData,
-                          customerName: e.target.value,
-                        })
-                      }
-                      error={customerNameError}
-                      helperText={customerNameError ? "Customer Name is required" : ""}
-                      inputProps={{ style: { fontSize: 18 } }}
-                      InputLabelProps={{ style: { fontSize: 18 } }}
+                    >
+                      <DashboardIcon sx={{ fontSize: 36, mr: 1 }} />
+                      Application Details
+                    </Typography>
+                    <Typography
+                      variant="body1"
                       sx={{
-                        bgcolor: "#fafbfc",
-                        borderRadius: 2,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                        mb: 1,
+                        textAlign: "center",
+                        color: "text.secondary",
+                        maxWidth: 700,
                       }}
-                    />
-                  </Box>
-                </Box>
-              )}
-              {activeStep === 1 && (
-                <Box>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      mb: 1,
-                      fontWeight: 700,
-                      textAlign: "center",
-                      letterSpacing: 1,
-                      color: "#1976d2",
-                    }}
-                  >
-                    Select a Use Case
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      mb: 3,
-                      textAlign: "center",
-                      color: "text.secondary",
-                    }}
-                  >
-                    Choose the dashboard or solution you want to build.
-                  </Typography>
-                  <RadioGroup
-                    value={workflowData.selectedUseCase}
-                    onChange={(e) =>
-                      setWorkflowData({
-                        ...workflowData,
-                        selectedUseCase: e.target.value,
-                      })
-                    }
-                  >
-                    {useCaseOptions.map((useCase) => (
-                      <FormControlLabel
-                        key={useCase}
-                        value={useCase}
-                        control={<Radio />}
-                        label={
-                          <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                            {useCase}
-                          </Typography>
+                    >
+                      Start by providing your application name and the customer or organization name. These details will be used to identify and personalize your GenAI app.
+                    </Typography>
+                    <Box sx={{ width: "60%" }}>
+                      <TextField
+                        fullWidth
+                        required
+                        variant="outlined"
+                        label="Application Name"
+                        value={workflowData.appName}
+                        onChange={(e) =>
+                          setWorkflowData({ ...workflowData, appName: e.target.value })
                         }
+                        error={appNameError}
+                        helperText={appNameError ? "Application Name is required" : ""}
+                        inputProps={{ style: { fontSize: 18 } }}
+                        InputLabelProps={{ style: { fontSize: 18 } }}
                         sx={{
-                          mb: 2,
-                          ml: 2,
+                          bgcolor: "#fafbfc",
+                          borderRadius: 2,
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                          mb: 3,
                         }}
                       />
-                    ))}
-                  </RadioGroup>
-                </Box>
+                      <TextField
+                        fullWidth
+                        required
+                        variant="outlined"
+                        label="Customer/Organization Name"
+                        value={workflowData.customerName}
+                        onChange={(e) =>
+                          setWorkflowData({
+                            ...workflowData,
+                            customerName: e.target.value,
+                          })
+                        }
+                        error={customerNameError}
+                        helperText={customerNameError ? "Customer/Organization Name is required" : ""}
+                        inputProps={{ style: { fontSize: 18 } }}
+                        InputLabelProps={{ style: { fontSize: 18 } }}
+                        sx={{
+                          bgcolor: "#fafbfc",
+                          borderRadius: 2,
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Fade>
+              )}
+              {activeStep === 1 && (
+                <Fade in>
+                  <Box>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        mb: 1,
+                        fontWeight: 700,
+                        textAlign: "center",
+                        letterSpacing: 1,
+                        color: "#1976d2",
+                      }}
+                    >
+                      <DashboardIcon sx={{ fontSize: 36, mr: 1 }} />
+                      Select Use Case
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mb: 3,
+                        textAlign: "center",
+                        color: "text.secondary",
+                        maxWidth: 700,
+                        mx: "auto",
+                      }}
+                    >
+                      Choose the type of GenAI dashboard or solution you want to build.
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                        gap: 4,
+                      }}
+                    >
+                      {useCaseOptions.map((option) => (
+                        <Tooltip title={option.label} arrow key={option.label}>
+                          <Card
+                            onClick={() =>
+                              setWorkflowData({
+                                ...workflowData,
+                                selectedUseCase: option.label,
+                              })
+                            }
+                            sx={{
+                              cursor: "pointer",
+                              borderRadius: 4,
+                              width: 320,
+                              minHeight: 140,
+                              boxShadow:
+                                workflowData.selectedUseCase === option.label
+                                  ? "0 0 0 3px #1976d2"
+                                  : theme.shadows[2],
+                              bgcolor:
+                                workflowData.selectedUseCase === option.label
+                                  ? "#e3f2fd"
+                                  : "#fff",
+                              textAlign: "center",
+                              p: 3,
+                              transition: "all 0.2s",
+                              "&:hover": {
+                                boxShadow: "0 0 0 3px #1976d2",
+                              },
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+                              {option.icon}
+                            </Box>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 600,
+                                color:
+                                  workflowData.selectedUseCase === option.label
+                                    ? "#1976d2"
+                                    : "#333",
+                              }}
+                            >
+                              {option.label}
+                            </Typography>
+                          </Card>
+                        </Tooltip>
+                      ))}
+                    </Box>
+                  </Box>
+                </Fade>
               )}
               {activeStep === 2 && (
-                <Box>
-                  <Typography variant="h4" sx={{
-                    mb: 1,
-                    fontWeight: 700,
-                    textAlign: "center",
-                    letterSpacing: 1,
-                    color: "#1976d2",
-                  }}>
-                    Customize Frontend Appearance
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      mb: 3,
+                <Fade in>
+                  <Box>
+                    <Typography variant="h4" sx={{
+                      mb: 1,
+                      fontWeight: 700,
                       textAlign: "center",
-                      color: "text.secondary",
-                    }}
-                  >
-                    Choose a color palette for your dashboard.
-                  </Typography>
-                  <ColorPicker
-                    height={180}
-                    color={color}
-                    onChange={setColor}
-                  />
-                </Box>
+                      letterSpacing: 1,
+                      color: "#1976d2",
+                    }}>
+                      <Palette sx={{ fontSize: 36, mr: 1 }} />
+                      Appearance & Branding
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mb: 3,
+                        textAlign: "center",
+                        color: "text.secondary",
+                        maxWidth: 700,
+                        mx: "auto",
+                      }}
+                    >
+                      Personalize your dashboard by choosing a color palette that matches your brand or customer preferences.
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        flexDirection: 'column',
+                        mt: 3 
+                      }}
+                    >
+                      <Paper 
+                        elevation={3}
+                        sx={{ 
+                          p: 4, 
+                          borderRadius: 3, 
+                          width: 380,
+                          bgcolor: '#fff'
+                        }}
+                      >
+                        <Box sx={{ mb: 3, textAlign: 'center' }}>
+                          <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                            Select Brand Color
+                          </Typography>
+                        </Box>
+                        <ColorPicker
+                          color={color}
+                          onChange={setColor}
+                        />
+                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Selected: <b>{color.hex}</b>
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Box>
+                  </Box>
+                </Fade>
               )}
               {activeStep === 3 && (
-                <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="h4" sx={{
-                    mb: 1,
-                    fontWeight: 700,
-                    textAlign: "center",
-                    letterSpacing: 1,
-                    color: "#1976d2",
-                  }}>
-                    Build and Deploy
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      mb: 3,
-                      textAlign: "center",
-                      color: "text.secondary",
-                    }}
-                  >
-                    Review your configuration and deploy your application.
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    sx={{
-                      borderRadius: 3,
-                      fontWeight: 600,
-                      px: 4,
-                      boxShadow: 2,
-                      mt: 2,
-                    }}
-                    onClick={() => alert("Deployment initiated")}
-                  >
-                    Deploy Application
-                  </Button>
-                </Box>
+                <Fade in>
+                  <Box>
+                    {renderBuildStep()}
+                  </Box>
+                </Fade>
               )}
               {activeStep === 4 && (
-                <Box>
-                  <Typography
-                    variant="h4"
-                    sx={{ mb: 2, color: "#1976d2", textAlign: "center", fontWeight: 700 }}
-                  >
-                    Review Your Data
-                  </Typography>
-                  <TableContainer component={Paper}>
-                    <Table>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>App Name</TableCell>
-                          <TableCell>{workflowData.appName}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Customer Name</TableCell>
-                          <TableCell>{workflowData.customerName}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Use Case</TableCell>
-                          <TableCell>{workflowData.selectedUseCase}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Color</TableCell>
-                          <TableCell>{workflowData.color}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
+                <Fade in>
+                  <Box>
+                    <Typography
+                      variant="h4"
+                      sx={{ mb: 2, color: "#1976d2", textAlign: "center", fontWeight: 700 }}
+                    >
+                      <CheckCircle sx={{ fontSize: 36, mr: 1 }} />
+                      Review & Confirm
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mb: 3,
+                        textAlign: "center",
+                        color: "text.secondary",
+                        maxWidth: 700,
+                        mx: "auto",
+                      }}
+                    >
+                      Review your application details before final deployment. Make sure all information is correct.
+                    </Typography>
+                    <TableContainer component={Paper}>
+                      <Table>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell><b>App Name</b></TableCell>
+                            <TableCell>{workflowData.appName}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Customer/Organization</b></TableCell>
+                            <TableCell>{workflowData.customerName}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Use Case</b></TableCell>
+                            <TableCell>{workflowData.selectedUseCase}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Brand Color</b></TableCell>
+                            <TableCell>
+                              <Box sx={{
+                                display: "inline-block",
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                bgcolor: workflowData.color,
+                                border: "2px solid #eee",
+                                verticalAlign: "middle",
+                                mr: 1,
+                              }} />
+                              {workflowData.color}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Fade>
               )}
             </CardContent>
             <Box
@@ -583,30 +934,30 @@ export const AdminDashboard: React.FC = () => {
                     boxShadow: 1,
                     textTransform: "none",
                   }}
+                  startIcon={<ArrowBack />}
                 >
                   Back
                 </Button>
               )}
               <Box sx={{ flex: 1 }} />
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNext}
-                disabled={loading}
-                sx={{
-                  borderRadius: 3,
-                  fontWeight: 600,
-                  px: 3,
-                  boxShadow: 1,
-                  textTransform: "none",
-                }}
-              >
-                {loading
-                  ? <CircularProgress size={24} color="inherit" />
-                  : activeStep === steps.length - 1
-                  ? "Submit"
-                  : "Next"}
-              </Button>
+              {activeStep !== steps.length - 1 && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleNext}
+                  disabled={loading}
+                  sx={{
+                    borderRadius: 3,
+                    fontWeight: 600,
+                    px: 3,
+                    boxShadow: 1,
+                    textTransform: "none",
+                  }}
+                  endIcon={<ArrowForward />}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : "Next"}
+                </Button>
+              )}
             </Box>
           </Card>
         )}
@@ -627,7 +978,7 @@ export const AdminDashboard: React.FC = () => {
             )}
             <Typography
               variant="h6"
-              sx={{ color: "blue", textAlign: "center", mb: 2 }}
+              sx={{ color: "#1976d2", textAlign: "center", mb: 2 }}
             >
               Existing Applications
             </Typography>
