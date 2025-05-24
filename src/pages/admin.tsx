@@ -95,7 +95,6 @@ export const AdminDashboard: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  
   // Fetch Existing Apps Data on "Review Existing App" Selection
   const fetchAppsData = async () => {
     setApiError(null);
@@ -125,8 +124,8 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-    useEffect(() => {
-     if (isAuthenticated) {
+  useEffect(() => {
+    if (isAuthenticated) {
       getIdTokenClaims().then((claims) => {
         return setOrgName(claims?.org_name); // or claims['org_name']
       });
@@ -381,7 +380,8 @@ export const AdminDashboard: React.FC = () => {
                       sx={{
                         bgcolor: "#fafbfc",
                         borderRadius: 2,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",... mb: 3
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                        mb: 3,
                       }}
                     />
                     <TextField
