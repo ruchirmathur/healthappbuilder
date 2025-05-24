@@ -72,6 +72,8 @@ function fetchWithTimeout(resource: RequestInfo, options: RequestInit = {}, time
   ]);
 }
 
+const API_HOST = process.env.REACT_APP_API_HOST;
+
 export const AdminDashboard: React.FC = () => {
   const { logout, user ,getIdTokenClaims,isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
@@ -99,7 +101,7 @@ export const AdminDashboard: React.FC = () => {
     setApiError(null);
     setLoading(true);
     try {
-      const response: any = await fetchWithTimeout("http://127.0.0.1:5000/retrieve-all");
+      const response: any = await fetchWithTimeout(`${API_HOST}/retrieve-all`);
       if (!response.ok) {
         throw new Error(`Error fetching apps: ${response.statusText}`);
       }
@@ -180,7 +182,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       // On last step before review, submit to /write
       if (activeStep === 3) {
-        const response: any = await fetchWithTimeout("http://127.0.0.1:5000/write", {
+        const response: any = await fetchWithTimeout(`${API_HOST}/write`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -194,7 +196,7 @@ export const AdminDashboard: React.FC = () => {
       }
 
       // API call on every Next (except last step)
-      const response: any = await fetchWithTimeout("http://127.0.0.1:5000/write", {
+      const response: any = await fetchWithTimeout(`${API_HOST}/write`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -379,8 +381,7 @@ export const AdminDashboard: React.FC = () => {
                       sx={{
                         bgcolor: "#fafbfc",
                         borderRadius: 2,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
-                        mb: 3,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",... mb: 3,
                       }}
                     />
                     <TextField
