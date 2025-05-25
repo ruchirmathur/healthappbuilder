@@ -62,7 +62,7 @@ const API_HOST = process.env.REACT_APP_API_HOST || "http://127.0.0.1:5000";
 const RETRIEVE_ALL_URL = `${API_HOST}/retrieve-all`;
 const WRITE_URL = `${API_HOST}/write`;
 const TRIGGER_DEPLOY_URL = `${API_HOST}/trigger-deploy`;
-const CREATE_APP_URL = `${API_HOST}/create-app`;
+const CREATE_APP_URL = `${API_HOST}/createApp`;
 
 const steps = [
   "App Details",
@@ -95,13 +95,35 @@ const useCaseOptions = [
   },
 ];
 
-const apiFields = [
+interface AppData {
+  id: string;
+  name: string;
+  url: string;
+  status: string;
+}
+
+interface WorkflowData {
+  id: string;
+  appName: string;
+  customerName: string;
+  selectedUseCase: string;
+  color?: string;
+}
+
+interface FormField {
+  name: string;
+  label: string;
+  helper: string;
+  type?: string;
+}
+
+const apiFields: FormField[] = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
   { name: "api_url", label: "API URL", helper: "e.g. https://api.yourdomain.com" },
 ];
 
-const webSecFields = [
+const webSecFields: FormField[] = [
   { name: "app", label: "App Name", helper: "The application name" },
   { name: "org_name", label: "Organization Name", helper: "Your organization's display name" },
   { name: "email", label: "Contact Email", helper: "Contact email for notifications", type: "email" },
@@ -110,7 +132,7 @@ const webSecFields = [
   { name: "initiate_login_uri", label: "Initiate Login URI", helper: "e.g. https://yourapp.com/login" },
 ];
 
-const webBuildFields = [
+const webBuildFields: FormField[] = [
   { name: "repo", label: "Frontend Repository URL", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your frontend deployment" },
   { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider" },
@@ -118,13 +140,13 @@ const webBuildFields = [
   { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login" },
 ];
 
-export const AdminDashboard = () => {
+export const AdminDashboard: React.FC = () => {
   const theme = useTheme();
   const { logout, user, getIdTokenClaims, isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
-  const [appsData, setAppsData] = useState([]);
-  const [orgName, setOrgName] = useState();
-  const [workflowData, setWorkflowData] = useState({
+  const [appsData, setAppsData] = useState<AppData[]>([]);
+  const [orgName, setOrgName] = useState<string | undefined>();
+  const [workflowData, setWorkflowData] = useState<WorkflowData>({
     id: "",
     appName: "",
     customerName: "",
@@ -135,14 +157,14 @@ export const AdminDashboard = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [appNameError, setAppNameError] = useState(false);
   const [customerNameError, setCustomerNameError] = useState(false);
-  const [apiError, setApiError] = useState(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [buildExpandedStep, setBuildExpandedStep] = useState(0);
-  const [buildCompleted, setBuildCompleted] = useState({});
+  const [buildCompleted, setBuildCompleted] = useState<{ [key: number]: boolean }>({});
   const [apiDeploying, setApiDeploying] = useState(false);
   const [creatingApp, setCreatingApp] = useState(false);
 
-  const [apiForm, setApiForm] = useState({
+  const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
     api_url: "",
@@ -157,7 +179,7 @@ export const AdminDashboard = () => {
     initiate_login_uri: "",
   });
 
-  const [webBuildForm, setWebBuildForm] = useState({
+  const [webBuildForm, setWebBuildForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
     client_id: "",
@@ -175,6 +197,7 @@ export const AdminDashboard = () => {
     }
   }, [workflowData.appName, workflowData.customerName]);
 
+  // Always sync color to workflowData for review and write API
   useEffect(() => {
     setWorkflowData(prev => ({
       ...prev,
@@ -207,29 +230,32 @@ export const AdminDashboard = () => {
     }
   };
 
-  const createAppSecurity = async () => {
-    setCreatingApp(true);
+  // FIXED createAppOnSecurityStep to match required request shape
+  const createAppOnSecurityStep = async () => {
     setApiError(null);
     try {
+      const body = {
+        app: webSecForm.app,
+        org_name: webSecForm.org_name,
+        email: webSecForm.email,
+        callback_urls: webSecForm.callback_urls
+          ? webSecForm.callback_urls.split(",").map(s => s.trim()).filter(Boolean)
+          : [""],
+        logout_urls: webSecForm.logout_urls
+          ? webSecForm.logout_urls.split(",").map(s => s.trim()).filter(Boolean)
+          : [""],
+        initiate_login_uri: webSecForm.initiate_login_uri || "h"
+      };
       const response = await fetch(CREATE_APP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          app: webSecForm.app,
-          org_name: webSecForm.org_name,
-          email: webSecForm.email,
-          callback_urls: webSecForm.callback_urls.split(",").map(url => url.trim()),
-          logout_urls: webSecForm.logout_urls.split(",").map(url => url.trim()),
-          initiate_login_uri: webSecForm.initiate_login_uri
-        }),
+        body: JSON.stringify(body),
       });
-      if (!response.ok) throw new Error("Security config failed");
+      if (!response.ok) throw new Error("App creation failed");
       setBuildCompleted(prev => ({ ...prev, 1: true }));
       setBuildExpandedStep(2);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Security config error");
-    } finally {
-      setCreatingApp(false);
+      setApiError(error instanceof Error ? error.message : "App creation error");
     }
   };
 
@@ -258,11 +284,13 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handleBuildStepContinue = async (step) => {
+  const handleBuildStepContinue = async (step: number) => {
     if (step === 0) {
       if (validateApiForm()) await triggerDeploy();
     } else if (step === 1) {
-      if (validateWebSecForm()) await createAppSecurity();
+      if (validateWebSecForm()) {
+        await createAppOnSecurityStep();
+      }
     } else if (step === 2) {
       if (validateWebBuildForm()) await createApp();
     }
@@ -273,8 +301,7 @@ export const AdminDashboard = () => {
     webSecForm.app.trim() &&
     webSecForm.org_name.trim() &&
     webSecForm.callback_urls.trim() &&
-    webSecForm.logout_urls.trim() &&
-    webSecForm.initiate_login_uri.trim();
+    webSecForm.logout_urls.trim();
   const validateWebBuildForm = () => webBuildFields.every(f => webBuildForm[f.name].trim() !== "");
 
   const fetchAppsData = async () => {
@@ -284,7 +311,7 @@ export const AdminDashboard = () => {
       const response = await fetch(RETRIEVE_ALL_URL);
       if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
-      setAppsData(data.map((item) => ({
+      setAppsData(data.map((item: any) => ({
         id: item.id,
         name: item.name,
         url: item.url,
@@ -420,7 +447,7 @@ export const AdminDashboard = () => {
                   key={field.name}
                   fullWidth
                   label={field.label}
-                  value={webSecForm[field.name]}
+                  value={(webSecForm as any)[field.name]}
                   onChange={e => setWebSecForm({ ...webSecForm, [field.name]: e.target.value })}
                   helperText={field.helper}
                   type={field.type || "text"}
@@ -431,11 +458,12 @@ export const AdminDashboard = () => {
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Button
                   variant="contained"
-                  onClick={createAppSecurity}
-                  disabled={!validateWebSecForm() || creatingApp}
-                  endIcon={creatingApp ? <CircularProgress size={20} /> : <ArrowForward />}
+                  onClick={() => handleBuildStepContinue(1)}
+                  disabled={!validateWebSecForm()}
+                  sx={{ borderRadius: 3, px: 4 }}
+                  endIcon={<ArrowForward />}
                 >
-                  {creatingApp ? "Configuring..." : "Continue"}
+                  Continue
                 </Button>
               </Box>
             </Box>
