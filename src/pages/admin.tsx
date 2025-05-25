@@ -95,47 +95,22 @@ const useCaseOptions = [
   },
 ];
 
-interface AppData {
-  id: string;
-  name: string;
-  url: string;
-  status: string;
-}
-
-interface WorkflowData {
-  id: string;
-  appName: string;
-  customerName: string;
-  selectedUseCase: string;
-  color?: string;
-}
-
-interface FormField {
-  name: string;
-  label: string;
-  helper: string;
-  type?: string;
-}
-
-const apiFields: FormField[] = [
+const apiFields = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
-  { name: "COSMOS_DB_URL", label: "Cosmos DB Endpoint", helper: "e.g. https://your-cosmos.documents.azure.com:443/" },
-  { name: "COSMOS_DB_KEY", label: "Cosmos DB Primary Key", helper: "Find this in your Azure Cosmos DB Keys section", type: "password" },
-  { name: "DATABASE_NAME", label: "Database Name", helper: "The name of your Cosmos DB database" },
-  { name: "CONTAINER_NAME", label: "Container Name", helper: "The name of your Cosmos DB container" },
+  { name: "api_url", label: "API URL", helper: "e.g. https://api.yourdomain.com" },
 ];
 
-const webSecFields: FormField[] = [
+const webSecFields = [
   { name: "app", label: "App Name", helper: "The application name" },
   { name: "org_name", label: "Organization Name", helper: "Your organization's display name" },
   { name: "email", label: "Contact Email", helper: "Contact email for notifications", type: "email" },
-  { name: "callback_urls", label: "Callback URLs", helper: "Comma-separated allowed callback URLs (OAuth/OIDC)" },
-  { name: "logout_urls", label: "Logout URLs", helper: "Comma-separated allowed logout redirect URLs" },
+  { name: "callback_urls", label: "Callback URL", helper: "Allowed callback URL (OAuth/OIDC)" },
+  { name: "logout_urls", label: "Logout URL", helper: "Allowed logout redirect URL" },
   { name: "initiate_login_uri", label: "Initiate Login URI", helper: "e.g. https://yourapp.com/login" },
 ];
 
-const webBuildFields: FormField[] = [
+const webBuildFields = [
   { name: "repo", label: "Frontend Repository URL", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your frontend deployment" },
   { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider" },
@@ -143,13 +118,13 @@ const webBuildFields: FormField[] = [
   { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login" },
 ];
 
-export const AdminDashboard: React.FC = () => {
+export const AdminDashboard = () => {
   const theme = useTheme();
   const { logout, user, getIdTokenClaims, isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
-  const [appsData, setAppsData] = useState<AppData[]>([]);
-  const [orgName, setOrgName] = useState<string | undefined>();
-  const [workflowData, setWorkflowData] = useState<WorkflowData>({
+  const [appsData, setAppsData] = useState([]);
+  const [orgName, setOrgName] = useState();
+  const [workflowData, setWorkflowData] = useState({
     id: "",
     appName: "",
     customerName: "",
@@ -160,20 +135,17 @@ export const AdminDashboard: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [appNameError, setAppNameError] = useState(false);
   const [customerNameError, setCustomerNameError] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [buildExpandedStep, setBuildExpandedStep] = useState(0);
-  const [buildCompleted, setBuildCompleted] = useState<{ [key: number]: boolean }>({});
+  const [buildCompleted, setBuildCompleted] = useState({});
   const [apiDeploying, setApiDeploying] = useState(false);
   const [creatingApp, setCreatingApp] = useState(false);
 
-  const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
+  const [apiForm, setApiForm] = useState({
     repo: "",
     workflow_id: "",
-    COSMOS_DB_URL: "",
-    COSMOS_DB_KEY: "",
-    DATABASE_NAME: "",
-    CONTAINER_NAME: "",
+    api_url: "",
   });
 
   const [webSecForm, setWebSecForm] = useState({
@@ -185,7 +157,7 @@ export const AdminDashboard: React.FC = () => {
     initiate_login_uri: "",
   });
 
-  const [webBuildForm, setWebBuildForm] = useState<{ [key: string]: string }>({
+  const [webBuildForm, setWebBuildForm] = useState({
     repo: "",
     workflow_id: "",
     client_id: "",
@@ -203,7 +175,6 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [workflowData.appName, workflowData.customerName]);
 
-  // Always sync color to workflowData for review and write API
   useEffect(() => {
     setWorkflowData(prev => ({
       ...prev,
@@ -222,10 +193,7 @@ export const AdminDashboard: React.FC = () => {
           repo: apiForm.repo,
           workflow_id: apiForm.workflow_id,
           inputs: {
-            COSMOS_DB_URL: apiForm.COSMOS_DB_URL,
-            COSMOS_DB_KEY: apiForm.COSMOS_DB_KEY,
-            DATABASE_NAME: apiForm.DATABASE_NAME,
-            CONTAINER_NAME: apiForm.CONTAINER_NAME
+            api_url: apiForm.api_url
           }
         }),
       });
@@ -239,7 +207,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Security & Auth Configuration: call createApp API with required format
   const createAppSecurity = async () => {
     setCreatingApp(true);
     setApiError(null);
@@ -251,12 +218,8 @@ export const AdminDashboard: React.FC = () => {
           app: webSecForm.app,
           org_name: webSecForm.org_name,
           email: webSecForm.email,
-          callback_urls: webSecForm.callback_urls
-            ? webSecForm.callback_urls.split(",").map(u => u.trim()).filter(Boolean)
-            : [""],
-          logout_urls: webSecForm.logout_urls
-            ? webSecForm.logout_urls.split(",").map(u => u.trim()).filter(Boolean)
-            : [""],
+          callback_urls: webSecForm.callback_urls.split(",").map(url => url.trim()),
+          logout_urls: webSecForm.logout_urls.split(",").map(url => url.trim()),
           initiate_login_uri: webSecForm.initiate_login_uri
         }),
       });
@@ -270,7 +233,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const createAppFrontend = async () => {
+  const createApp = async () => {
     setCreatingApp(true);
     setApiError(null);
     try {
@@ -295,13 +258,13 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleBuildStepContinue = async (step: number) => {
+  const handleBuildStepContinue = async (step) => {
     if (step === 0) {
       if (validateApiForm()) await triggerDeploy();
     } else if (step === 1) {
       if (validateWebSecForm()) await createAppSecurity();
     } else if (step === 2) {
-      if (validateWebBuildForm()) await createAppFrontend();
+      if (validateWebBuildForm()) await createApp();
     }
   };
 
@@ -321,7 +284,7 @@ export const AdminDashboard: React.FC = () => {
       const response = await fetch(RETRIEVE_ALL_URL);
       if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
-      setAppsData(data.map((item: any) => ({
+      setAppsData(data.map((item) => ({
         id: item.id,
         name: item.name,
         url: item.url,
@@ -457,7 +420,7 @@ export const AdminDashboard: React.FC = () => {
                   key={field.name}
                   fullWidth
                   label={field.label}
-                  value={(webSecForm as any)[field.name]}
+                  value={webSecForm[field.name]}
                   onChange={e => setWebSecForm({ ...webSecForm, [field.name]: e.target.value })}
                   helperText={field.helper}
                   type={field.type || "text"}
@@ -468,7 +431,7 @@ export const AdminDashboard: React.FC = () => {
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Button
                   variant="contained"
-                  onClick={() => handleBuildStepContinue(1)}
+                  onClick={createAppSecurity}
                   disabled={!validateWebSecForm() || creatingApp}
                   endIcon={creatingApp ? <CircularProgress size={20} /> : <ArrowForward />}
                 >
