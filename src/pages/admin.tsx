@@ -117,7 +117,6 @@ interface FormField {
   type?: string;
 }
 
-// Only these fields for backend config
 const apiFields: FormField[] = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
@@ -165,7 +164,6 @@ export const AdminDashboard: React.FC = () => {
   const [apiDeploying, setApiDeploying] = useState(false);
   const [creatingApp, setCreatingApp] = useState(false);
 
-  // Only these fields in apiForm
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
@@ -199,7 +197,14 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [workflowData.appName, workflowData.customerName]);
 
-  // Ensure api_url is inside inputs in the request
+  // Always sync color to workflowData for review and write API
+  useEffect(() => {
+    setWorkflowData(prev => ({
+      ...prev,
+      color: color.hex
+    }));
+  }, [color]);
+
   const triggerDeploy = async () => {
     setApiDeploying(true);
     setApiError(null);
@@ -211,8 +216,8 @@ export const AdminDashboard: React.FC = () => {
           repo: apiForm.repo,
           workflow_id: apiForm.workflow_id,
           inputs: {
-            api_url: apiForm.api_url,
-          },
+            api_url: apiForm.api_url
+          }
         }),
       });
       if (!response.ok) throw new Error("Deployment failed");
@@ -326,7 +331,7 @@ export const AdminDashboard: React.FC = () => {
           TenantId: workflowData.customerName,
           appName: workflowData.appName,
           selectedUseCase: workflowData.selectedUseCase,
-          ...(activeStep >= 2 && { color: color.hex })
+          color: color.hex
         }),
       });
       if (!response.ok) throw new Error("API error");
@@ -344,6 +349,9 @@ export const AdminDashboard: React.FC = () => {
       setApiError(null);
     }
   };
+
+  const allBuildStepsCompleted = () =>
+    buildCompleted[0] && buildCompleted[1] && buildCompleted[2];
 
   const renderBuildStep = () => (
     <Card sx={{ mb: 2, boxShadow: theme.shadows[4], borderRadius: 4, bgcolor: "#f8fafb" }}>
@@ -937,7 +945,10 @@ export const AdminDashboard: React.FC = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleNext}
-                  disabled={loading}
+                  disabled={
+                    loading ||
+                    (activeStep === 3 && !allBuildStepsCompleted())
+                  }
                   sx={{
                     borderRadius: 3,
                     fontWeight: 600,
