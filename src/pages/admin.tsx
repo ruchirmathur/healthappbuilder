@@ -230,7 +230,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // FIXED createAppOnSecurityStep to match required request shape
+  // Security & Auth Configuration step
   const createAppOnSecurityStep = async () => {
     setApiError(null);
     try {
@@ -259,32 +259,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const createApp = async () => {
-    setCreatingApp(true);
-    setApiError(null);
-    try {
-      const response = await fetch(CREATE_APP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...webBuildForm,
-          appName: workflowData.appName,
-          orgName: workflowData.customerName,
-          color: color.hex,
-          useCase: workflowData.selectedUseCase
-        }),
-      });
-      if (!response.ok) throw new Error("App creation failed");
-      setBuildCompleted(prev => ({ ...prev, 2: true }));
-      setActiveStep(4);
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Creation error");
-    } finally {
-      setCreatingApp(false);
-    }
-  };
-
-  // ---- UPDATED: Frontend Deployment step now calls trigger-deploy with api_url ----
+  // Frontend Deployment step: trigger-deploy with api_url
   const handleBuildStepContinue = async (step: number) => {
     if (step === 0) {
       if (validateApiForm()) await triggerDeploy();
@@ -320,7 +295,6 @@ export const AdminDashboard: React.FC = () => {
       }
     }
   };
-  // -------------------------------------------------------------------------
 
   const validateApiForm = () => apiFields.every(f => apiForm[f.name].trim() !== "");
   const validateWebSecForm = () =>
@@ -524,10 +498,10 @@ export const AdminDashboard: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={() => handleBuildStepContinue(2)}
-                  disabled={!validateWebBuildForm() || creatingApp || apiDeploying}
-                  endIcon={creatingApp || apiDeploying ? <CircularProgress size={20} /> : <CheckCircle />}
+                  disabled={!validateWebBuildForm() || apiDeploying}
+                  endIcon={apiDeploying ? <CircularProgress size={20} /> : <CheckCircle />}
                 >
-                  {creatingApp || apiDeploying ? "Deploying..." : "Deploy Now"}
+                  {apiDeploying ? "Deploying..." : "Deploy Now"}
                 </Button>
               </Box>
             </Box>
