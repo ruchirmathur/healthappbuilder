@@ -162,7 +162,6 @@ export const AdminDashboard: React.FC = () => {
   const [buildExpandedStep, setBuildExpandedStep] = useState(0);
   const [buildCompleted, setBuildCompleted] = useState<{ [key: number]: boolean }>({});
   const [apiDeploying, setApiDeploying] = useState(false);
-  const [creatingApp, setCreatingApp] = useState(false);
 
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
