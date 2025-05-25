@@ -117,13 +117,11 @@ interface FormField {
   type?: string;
 }
 
+// Only keep Repo URL, Workflow ID, and API URL for backend config
 const apiFields: FormField[] = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
-  { name: "COSMOS_DB_URL", label: "Cosmos DB Endpoint", helper: "e.g. https://your-cosmos.documents.azure.com:443/" },
-  { name: "COSMOS_DB_KEY", label: "Cosmos DB Primary Key", helper: "Find this in your Azure Cosmos DB Keys section", type: "password" },
-  { name: "DATABASE_NAME", label: "Database Name", helper: "The name of your Cosmos DB database" },
-  { name: "CONTAINER_NAME", label: "Container Name", helper: "The name of your Cosmos DB container" },
+  { name: "api_url", label: "API URL", helper: "e.g. https://your-api.azurewebsites.net/api" },
 ];
 
 const webSecFields: FormField[] = [
@@ -167,13 +165,11 @@ export const AdminDashboard: React.FC = () => {
   const [apiDeploying, setApiDeploying] = useState(false);
   const [creatingApp, setCreatingApp] = useState(false);
 
+  // Only keep the 3 backend config fields in the state
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
-    COSMOS_DB_URL: "",
-    COSMOS_DB_KEY: "",
-    DATABASE_NAME: "",
-    CONTAINER_NAME: "",
+    api_url: "",
   });
 
   const [webSecForm, setWebSecForm] = useState({
@@ -210,15 +206,11 @@ export const AdminDashboard: React.FC = () => {
       const response = await fetch(TRIGGER_DEPLOY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Only send the three fields
         body: JSON.stringify({
           repo: apiForm.repo,
           workflow_id: apiForm.workflow_id,
-          inputs: {
-            COSMOS_DB_URL: apiForm.COSMOS_DB_URL,
-            COSMOS_DB_KEY: apiForm.COSMOS_DB_KEY,
-            DATABASE_NAME: apiForm.DATABASE_NAME,
-            CONTAINER_NAME: apiForm.CONTAINER_NAME
-          }
+          api_url: apiForm.api_url
         }),
       });
       if (!response.ok) throw new Error("Deployment failed");
@@ -297,12 +289,11 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-useEffect(() => {
-  if (isAuthenticated) {
-    getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
-  }
-}, [isAuthenticated, getIdTokenClaims]);
-
+  useEffect(() => {
+    if (isAuthenticated) {
+      getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
+    }
+  }, [isAuthenticated, getIdTokenClaims]);
 
   useEffect(() => {
     if (currentView === "Review Existing App") fetchAppsData();
