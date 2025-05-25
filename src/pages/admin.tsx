@@ -117,11 +117,11 @@ interface FormField {
   type?: string;
 }
 
-// Only keep Repo URL, Workflow ID, and API URL for backend config
+// Only these fields for backend config
 const apiFields: FormField[] = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
-  { name: "api_url", label: "API URL", helper: "e.g. https://your-api.azurewebsites.net/api" },
+  { name: "api_url", label: "API URL", helper: "e.g. https://api.yourdomain.com" },
 ];
 
 const webSecFields: FormField[] = [
@@ -165,7 +165,7 @@ export const AdminDashboard: React.FC = () => {
   const [apiDeploying, setApiDeploying] = useState(false);
   const [creatingApp, setCreatingApp] = useState(false);
 
-  // Only keep the 3 backend config fields in the state
+  // Only these fields in apiForm
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
@@ -199,6 +199,7 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [workflowData.appName, workflowData.customerName]);
 
+  // Ensure api_url is inside inputs in the request
   const triggerDeploy = async () => {
     setApiDeploying(true);
     setApiError(null);
@@ -206,11 +207,12 @@ export const AdminDashboard: React.FC = () => {
       const response = await fetch(TRIGGER_DEPLOY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Only send the three fields
         body: JSON.stringify({
           repo: apiForm.repo,
           workflow_id: apiForm.workflow_id,
-          api_url: apiForm.api_url
+          inputs: {
+            api_url: apiForm.api_url,
+          },
         }),
       });
       if (!response.ok) throw new Error("Deployment failed");
