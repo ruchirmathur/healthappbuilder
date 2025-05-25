@@ -277,10 +277,12 @@ export const AdminDashboard: React.FC = () => {
             body: JSON.stringify({
               repo: webBuildForm.repo,
               workflow_id: webBuildForm.workflow_id,
+              inputs: {
               client_id: webBuildForm.client_id,
               okta_domain: webBuildForm.okta_domain,
               redirect_url: webBuildForm.redirect_url,
               api_url: apiForm.api_url,
+            }
             }),
           });
           if (!response.ok) throw new Error("Frontend deployment failed");
