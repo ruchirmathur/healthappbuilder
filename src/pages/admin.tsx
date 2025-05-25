@@ -284,43 +284,43 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-const handleBuildStepContinue = async (step: number) => {
-  if (step === 0) {
-    if (validateApiForm()) await triggerDeploy();
-  } else if (step === 1) {
-    if (validateWebSecForm()) {
-      await createAppOnSecurityStep();
-    }
-  } else if (step === 2) {
-    if (validateWebBuildForm()) {
-      // --- Frontend Deployment: Call trigger-deploy API with api_url ---
-      setApiDeploying(true);
-      setApiError(null);
-      try {
-        const response = await fetch(TRIGGER_DEPLOY_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            repo: webBuildForm.repo,
-            workflow_id: webBuildForm.workflow_id,
-            client_id: webBuildForm.client_id,
-            okta_domain: webBuildForm.okta_domain,
-            redirect_url: webBuildForm.redirect_url,
-            api_url: apiForm.api_url, // <-- include API URL from backend config
-          }),
-        });
-        if (!response.ok) throw new Error("Frontend deployment failed");
-        setBuildCompleted(prev => ({ ...prev, 2: true }));
-        setActiveStep(4);
-      } catch (error) {
-        setApiError(error instanceof Error ? error.message : "Frontend deployment error");
-      } finally {
-        setApiDeploying(false);
+  // ---- UPDATED: Frontend Deployment step now calls trigger-deploy with api_url ----
+  const handleBuildStepContinue = async (step: number) => {
+    if (step === 0) {
+      if (validateApiForm()) await triggerDeploy();
+    } else if (step === 1) {
+      if (validateWebSecForm()) {
+        await createAppOnSecurityStep();
+      }
+    } else if (step === 2) {
+      if (validateWebBuildForm()) {
+        setApiDeploying(true);
+        setApiError(null);
+        try {
+          const response = await fetch(TRIGGER_DEPLOY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              repo: webBuildForm.repo,
+              workflow_id: webBuildForm.workflow_id,
+              client_id: webBuildForm.client_id,
+              okta_domain: webBuildForm.okta_domain,
+              redirect_url: webBuildForm.redirect_url,
+              api_url: apiForm.api_url,
+            }),
+          });
+          if (!response.ok) throw new Error("Frontend deployment failed");
+          setBuildCompleted(prev => ({ ...prev, 2: true }));
+          setActiveStep(4);
+        } catch (error) {
+          setApiError(error instanceof Error ? error.message : "Frontend deployment error");
+        } finally {
+          setApiDeploying(false);
+        }
       }
     }
-  }
-};
-
+  };
+  // -------------------------------------------------------------------------
 
   const validateApiForm = () => apiFields.every(f => apiForm[f.name].trim() !== "");
   const validateWebSecForm = () =>
@@ -524,10 +524,10 @@ const handleBuildStepContinue = async (step: number) => {
                 <Button
                   variant="contained"
                   onClick={() => handleBuildStepContinue(2)}
-                  disabled={!validateWebBuildForm() || creatingApp}
-                  endIcon={creatingApp ? <CircularProgress size={20} /> : <CheckCircle />}
+                  disabled={!validateWebBuildForm() || creatingApp || apiDeploying}
+                  endIcon={creatingApp || apiDeploying ? <CircularProgress size={20} /> : <CheckCircle />}
                 >
-                  {creatingApp ? "Creating..." : "Deploy Now"}
+                  {creatingApp || apiDeploying ? "Deploying..." : "Deploy Now"}
                 </Button>
               </Box>
             </Box>
