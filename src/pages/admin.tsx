@@ -120,15 +120,18 @@ interface FormField {
 const apiFields: FormField[] = [
   { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
   { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
-  { name: "api_url", label: "API URL", helper: "e.g. https://api.yourdomain.com" },
+  { name: "COSMOS_DB_URL", label: "Cosmos DB Endpoint", helper: "e.g. https://your-cosmos.documents.azure.com:443/" },
+  { name: "COSMOS_DB_KEY", label: "Cosmos DB Primary Key", helper: "Find this in your Azure Cosmos DB Keys section", type: "password" },
+  { name: "DATABASE_NAME", label: "Database Name", helper: "The name of your Cosmos DB database" },
+  { name: "CONTAINER_NAME", label: "Container Name", helper: "The name of your Cosmos DB container" },
 ];
 
 const webSecFields: FormField[] = [
   { name: "app", label: "App Name", helper: "The application name" },
   { name: "org_name", label: "Organization Name", helper: "Your organization's display name" },
   { name: "email", label: "Contact Email", helper: "Contact email for notifications", type: "email" },
-  { name: "callback_urls", label: "Callback URL", helper: "Allowed callback URL (OAuth/OIDC)" },
-  { name: "logout_urls", label: "Logout URL", helper: "Allowed logout redirect URL" },
+  { name: "callback_urls", label: "Callback URLs", helper: "Comma-separated allowed callback URLs (OAuth/OIDC)" },
+  { name: "logout_urls", label: "Logout URLs", helper: "Comma-separated allowed logout redirect URLs" },
   { name: "initiate_login_uri", label: "Initiate Login URI", helper: "e.g. https://yourapp.com/login" },
 ];
 
@@ -167,7 +170,10 @@ export const AdminDashboard: React.FC = () => {
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
     workflow_id: "",
-    api_url: "",
+    COSMOS_DB_URL: "",
+    COSMOS_DB_KEY: "",
+    DATABASE_NAME: "",
+    CONTAINER_NAME: "",
   });
 
   const [webSecForm, setWebSecForm] = useState({
@@ -216,7 +222,10 @@ export const AdminDashboard: React.FC = () => {
           repo: apiForm.repo,
           workflow_id: apiForm.workflow_id,
           inputs: {
-            api_url: apiForm.api_url
+            COSMOS_DB_URL: apiForm.COSMOS_DB_URL,
+            COSMOS_DB_KEY: apiForm.COSMOS_DB_KEY,
+            DATABASE_NAME: apiForm.DATABASE_NAME,
+            CONTAINER_NAME: apiForm.CONTAINER_NAME
           }
         }),
       });
@@ -230,7 +239,38 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const createApp = async () => {
+  // Security & Auth Configuration: call createApp API with required format
+  const createAppSecurity = async () => {
+    setCreatingApp(true);
+    setApiError(null);
+    try {
+      const response = await fetch(CREATE_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app: webSecForm.app,
+          org_name: webSecForm.org_name,
+          email: webSecForm.email,
+          callback_urls: webSecForm.callback_urls
+            ? webSecForm.callback_urls.split(",").map(u => u.trim()).filter(Boolean)
+            : [""],
+          logout_urls: webSecForm.logout_urls
+            ? webSecForm.logout_urls.split(",").map(u => u.trim()).filter(Boolean)
+            : [""],
+          initiate_login_uri: webSecForm.initiate_login_uri
+        }),
+      });
+      if (!response.ok) throw new Error("Security config failed");
+      setBuildCompleted(prev => ({ ...prev, 1: true }));
+      setBuildExpandedStep(2);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Security config error");
+    } finally {
+      setCreatingApp(false);
+    }
+  };
+
+  const createAppFrontend = async () => {
     setCreatingApp(true);
     setApiError(null);
     try {
@@ -259,12 +299,9 @@ export const AdminDashboard: React.FC = () => {
     if (step === 0) {
       if (validateApiForm()) await triggerDeploy();
     } else if (step === 1) {
-      if (validateWebSecForm()) {
-        setBuildCompleted(prev => ({ ...prev, 1: true }));
-        setBuildExpandedStep(2);
-      }
+      if (validateWebSecForm()) await createAppSecurity();
     } else if (step === 2) {
-      if (validateWebBuildForm()) await createApp();
+      if (validateWebBuildForm()) await createAppFrontend();
     }
   };
 
@@ -273,7 +310,8 @@ export const AdminDashboard: React.FC = () => {
     webSecForm.app.trim() &&
     webSecForm.org_name.trim() &&
     webSecForm.callback_urls.trim() &&
-    webSecForm.logout_urls.trim();
+    webSecForm.logout_urls.trim() &&
+    webSecForm.initiate_login_uri.trim();
   const validateWebBuildForm = () => webBuildFields.every(f => webBuildForm[f.name].trim() !== "");
 
   const fetchAppsData = async () => {
@@ -431,11 +469,10 @@ export const AdminDashboard: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={() => handleBuildStepContinue(1)}
-                  disabled={!validateWebSecForm()}
-                  sx={{ borderRadius: 3, px: 4 }}
-                  endIcon={<ArrowForward />}
+                  disabled={!validateWebSecForm() || creatingApp}
+                  endIcon={creatingApp ? <CircularProgress size={20} /> : <ArrowForward />}
                 >
-                  Continue
+                  {creatingApp ? "Configuring..." : "Continue"}
                 </Button>
               </Box>
             </Box>
