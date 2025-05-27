@@ -347,7 +347,7 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      getIdTokenClaims().then(claims => setOrgName(claims?.org_name));
+    
     }
   }, [isAuthenticated, getIdTokenClaims]);
 
