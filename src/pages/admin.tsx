@@ -631,7 +631,7 @@ const handleEmailClick = (e: React.MouseEvent<HTMLButtonElement>) => {
               }}
             >
               <DashboardIcon sx={{ mr: 1 }} />
-              Multi-Tenant GenAI App Builder
+              Healthcare App Builder
             </Typography>
           </Box>
           {/* User/Account Button (remains right-aligned) */}
