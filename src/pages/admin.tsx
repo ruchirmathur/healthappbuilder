@@ -118,8 +118,8 @@ interface FormField {
 }
 
 const apiFields: FormField[] = [
-  { name: "repo", label: "API Repository URL", helper: "e.g. https://github.com/yourorg/your-api-repo" },
-  { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your deployment pipeline" },
+  { name: "repo", label: "API Repository Name", helper: "e.g. https://github.com/yourorg/your-api-repo" },
+  { name: "workflow_id", label: "CI/CD Workflow Name", helper: "The workflow file for your API deployment pipeline" },
   { name: "api_url", label: "API URL", helper: "e.g. https://api.yourdomain.com" },
 ];
 
@@ -133,8 +133,8 @@ const webSecFields: FormField[] = [
 ];
 
 const webBuildFields: FormField[] = [
-  { name: "repo", label: "Frontend Repository URL", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
-  { name: "workflow_id", label: "CI/CD Workflow ID", helper: "The workflow ID for your frontend deployment" },
+  { name: "repo", label: "Frontend Repository Name", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
+  { name: "workflow_id", label: "CI/CD Workflow Name", helper: "The workflow file name for your frontend deployment" },
   { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider" },
   { name: "okta_domain", label: "Okta Domain", helper: "e.g. dev-123456.okta.com" },
   { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login" },
