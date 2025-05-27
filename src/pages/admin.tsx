@@ -523,13 +523,22 @@ export const AdminDashboard: React.FC = () => {
                 <Box sx={{ mb: 2 }}>
                   <Typography>
                     Contact Email:{" "}
-                    <a
-                      href="#"
-                      onClick={handleEmailClick}
-                      style={{ color: "#1976d2", textDecoration: "underline", cursor: "pointer" }}
-                    >
-                      {webSecForm.email || "No email entered"}
-                    </a>
+                  <button
+  type="button"
+  onClick={handleEmailClick}
+  style={{
+    color: "#1976d2",
+    textDecoration: "underline",
+    cursor: "pointer",
+    background: "none",
+    border: "none",
+    padding: 0,
+    font: "inherit"
+  }}
+>
+  {webSecForm.email || "No email entered"}
+</button>
+
                   </Typography>
                 </Box>
               )}
