@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+=import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -32,6 +32,8 @@ import {
   useTheme,
   Fade,
   Tooltip,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   AccountCircle,
@@ -69,7 +71,7 @@ const steps = [
   "Select Use Case",
   "Appearance",
   "Build & Deploy",
-  "Review",
+  "Complete",
 ];
 
 const useCaseOptions = [
@@ -115,6 +117,7 @@ interface FormField {
   label: string;
   helper: string;
   type?: string;
+  disabled?: boolean;
 }
 
 const apiFields: FormField[] = [
@@ -135,9 +138,9 @@ const webSecFields: FormField[] = [
 const webBuildFields: FormField[] = [
   { name: "repo", label: "Frontend Repository Name", helper: "e.g. https://github.com/yourorg/your-frontend-repo" },
   { name: "workflow_id", label: "CI/CD Workflow Name", helper: "The workflow file name for your frontend deployment" },
-  { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider" },
-  { name: "okta_domain", label: "Okta Domain", helper: "e.g. dev-123456.okta.com" },
-  { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login" },
+  { name: "client_id", label: "Client ID", helper: "The client ID from your identity provider", disabled: true },
+  { name: "okta_domain", label: "Okta Domain", helper: "e.g. dev-123456.okta.com", disabled: true },
+  { name: "redirect_url", label: "Redirect URL", helper: "Where users are redirected after login", disabled: true },
 ];
 
 export const AdminDashboard: React.FC = () => {
@@ -162,6 +165,10 @@ export const AdminDashboard: React.FC = () => {
   const [buildExpandedStep, setBuildExpandedStep] = useState(0);
   const [buildCompleted, setBuildCompleted] = useState<{ [key: number]: boolean }>({});
   const [apiDeploying, setApiDeploying] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // For logout menu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const [apiForm, setApiForm] = useState<{ [key: string]: string }>({
     repo: "",
@@ -186,6 +193,14 @@ export const AdminDashboard: React.FC = () => {
     redirect_url: "",
   });
 
+  // Fetch app listing when entering final step
+  useEffect(() => {
+    if (activeStep === 4) {
+      fetchAppsData();
+    }
+    // eslint-disable-next-line
+  }, [activeStep]);
+
   useEffect(() => {
     if (workflowData.appName && workflowData.customerName) {
       setWebSecForm(prev => ({
@@ -196,7 +211,6 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [workflowData.appName, workflowData.customerName]);
 
-  // Always sync color to workflowData for review and write API
   useEffect(() => {
     setWorkflowData(prev => ({
       ...prev,
@@ -229,8 +243,8 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Security & Auth Configuration step
   const createAppOnSecurityStep = async () => {
+    setAuthLoading(true);
     setApiError(null);
     try {
       const body = {
@@ -252,19 +266,18 @@ export const AdminDashboard: React.FC = () => {
       });
       if (!response.ok) throw new Error("App creation failed");
       const responseData = await response.json();
-
-      // Prepopulate webBuildForm fields from API response
       setWebBuildForm(prev => ({
         ...prev,
         client_id: responseData.client_id || "",
         okta_domain: responseData.okta_domain || "",
         redirect_url: (responseData.callback_urls && responseData.callback_urls[0]) ? responseData.callback_urls[0] : "",
       }));
-
       setBuildCompleted(prev => ({ ...prev, 1: true }));
       setBuildExpandedStep(2);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "App creation error");
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -397,7 +410,6 @@ export const AdminDashboard: React.FC = () => {
   const allBuildStepsCompleted = () =>
     buildCompleted[0] && buildCompleted[1] && buildCompleted[2];
 
-  // Multi-select card toggle logic
   const toggleUseCase = (label: string) => {
     setWorkflowData(prev => {
       const already = prev.selectedUseCase.includes(label);
@@ -410,10 +422,28 @@ export const AdminDashboard: React.FC = () => {
     });
   };
 
+  // Logout menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  const handleLogout = () => {
+    handleMenuClose();
+    logout({ logoutParams: { returnTo: window.location.origin } });
+  };
+
   const renderBuildStep = () => (
     <Card sx={{ mb: 2, boxShadow: theme.shadows[4], borderRadius: 4, bgcolor: "#f8fafb" }}>
       <CardContent>
-        <Typography variant="h5" sx={{ mb: 3, display: "flex", alignItems: "center", color: theme.palette.primary.main }}>
+        <Typography variant="h5" sx={{
+          mb: 3,
+          display: "flex",
+          alignItems: "center",
+          color: theme.palette.primary.main,
+          justifyContent: "center"
+        }}>
           <Build sx={{ mr: 1.5, fontSize: 32 }} />
           Build & Deploy
         </Typography>
@@ -488,11 +518,11 @@ export const AdminDashboard: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={() => handleBuildStepContinue(1)}
-                  disabled={!validateWebSecForm()}
+                  disabled={!validateWebSecForm() || authLoading}
                   sx={{ borderRadius: 3, px: 4 }}
-                  endIcon={<ArrowForward />}
+                  endIcon={authLoading ? <CircularProgress size={20} /> : <ArrowForward />}
                 >
-                  Continue
+                  {authLoading ? "Configuring..." : "Continue"}
                 </Button>
               </Box>
             </Box>
@@ -520,6 +550,8 @@ export const AdminDashboard: React.FC = () => {
                   value={webBuildForm[field.name]}
                   onChange={e => setWebBuildForm({ ...webBuildForm, [field.name]: e.target.value })}
                   helperText={field.helper}
+                  type={field.type || "text"}
+                  disabled={field.disabled}
                   sx={{ mb: 3 }}
                 />
               ))}
@@ -545,15 +577,31 @@ export const AdminDashboard: React.FC = () => {
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: theme => theme.zIndex.drawer + 1, backgroundColor: "#153a5b" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center" }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center", fontWeight: 600 }}>
             <DashboardIcon sx={{ mr: 1 }} />
             Multi-Tenant GenAI App Builder
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Typography sx={{ mr: 2 }}>{user?.name} — {orgName}</Typography>
-            <IconButton color="inherit" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+          <Box>
+            <Button
+              color="inherit"
+              onClick={handleMenuOpen}
+              sx={{
+                textTransform: 'none',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <Typography sx={{ mr: 1 }}>{user?.name}</Typography>
               <AccountCircle />
-            </IconButton>
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>
@@ -917,7 +965,7 @@ export const AdminDashboard: React.FC = () => {
                       sx={{ mb: 2, color: "#1976d2", textAlign: "center", fontWeight: 700 }}
                     >
                       <CheckCircle sx={{ fontSize: 36, mr: 1 }} />
-                      Review & Confirm
+                      Complete
                     </Typography>
                     <Typography
                       variant="body1"
@@ -929,7 +977,7 @@ export const AdminDashboard: React.FC = () => {
                         mx: "auto",
                       }}
                     >
-                      Review your application details before final deployment. Make sure all information is correct.
+                      Your application has been configured and deployed. Here are the details:
                     </Typography>
                     <TableContainer component={Paper}>
                       <Table>
@@ -964,9 +1012,78 @@ export const AdminDashboard: React.FC = () => {
                               {workflowData.color}
                             </TableCell>
                           </TableRow>
+                          <TableRow>
+                            <TableCell><b>API URL</b></TableCell>
+                            <TableCell>{apiForm.api_url}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Client ID</b></TableCell>
+                            <TableCell>{webBuildForm.client_id}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Okta Domain</b></TableCell>
+                            <TableCell>{webBuildForm.okta_domain}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><b>Redirect URL</b></TableCell>
+                            <TableCell>{webBuildForm.redirect_url}</TableCell>
+                          </TableRow>
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    <Box sx={{ mt: 5 }}>
+                      <Typography variant="h6" sx={{ color: "#1976d2", mb: 2, textAlign: "center" }}>
+                        All Applications
+                      </Typography>
+                      {loading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                          <CircularProgress />
+                        </Box>
+                      ) : (
+                        <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
+                          <Table stickyHeader>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>ID</TableCell>
+                                <TableCell>Name</TableCell>
+                                <TableCell>URL</TableCell>
+                                <TableCell>Status</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {appsData.map((app, index) => (
+                                <TableRow
+                                  key={app.id}
+                                  sx={{
+                                    backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+                                    "&:hover": { backgroundColor: "#f0f0f0" },
+                                  }}
+                                >
+                                  <TableCell>{app.id}</TableCell>
+                                  <TableCell>{app.name}</TableCell>
+                                  <TableCell>
+                                    {app.url ? (
+                                      <a href={app.url} target="_blank" rel="noopener noreferrer">
+                                        {app.url}
+                                      </a>
+                                    ) : (
+                                      "N/A"
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {app.status === "in-progress" ? (
+                                      <CircularProgress size={20} />
+                                    ) : (
+                                      app.status
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )}
+                    </Box>
                   </Box>
                 </Fade>
               )}
