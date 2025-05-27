@@ -98,9 +98,10 @@ const useCaseOptions = [
 
 interface AppData {
   id: string;
-  name: string;
-  url: string;
-  status: string;
+  Org: string;
+  appName: string;
+  color: string;
+  selectedUseCase: string;
 }
 
 interface WorkflowData {
@@ -332,12 +333,7 @@ export const AdminDashboard: React.FC = () => {
       const response = await fetch(RETRIEVE_ALL_URL);
       if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
-      setAppsData(data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        url: item.url,
-        status: item.status,
-      })));
+      setAppsData(data);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Fetch error");
     } finally {
@@ -1038,48 +1034,49 @@ export const AdminDashboard: React.FC = () => {
                           <CircularProgress />
                         </Box>
                       ) : (
-                        <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
-                          <Table stickyHeader>
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>ID</TableCell>
-                                <TableCell>Name</TableCell>
-                                <TableCell>URL</TableCell>
-                                <TableCell>Status</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {appsData.map((app, index) => (
-                                <TableRow
-                                  key={app.id}
-                                  sx={{
-                                    backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
-                                    "&:hover": { backgroundColor: "#f0f0f0" },
-                                  }}
-                                >
-                                  <TableCell>{app.id}</TableCell>
-                                  <TableCell>{app.name}</TableCell>
-                                  <TableCell>
-                                    {app.url ? (
-                                      <a href={app.url} target="_blank" rel="noopener noreferrer">
-                                        {app.url}
-                                      </a>
-                                    ) : (
-                                      "N/A"
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {app.status === "in-progress" ? (
-                                      <CircularProgress size={20} />
-                                    ) : (
-                                      app.status
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
+<TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
+  <Table stickyHeader>
+    <TableHead>
+      <TableRow>
+        <TableCell>ID</TableCell>
+        <TableCell>Organization</TableCell>
+        <TableCell>App Name</TableCell>
+        <TableCell>Brand Color</TableCell>
+        <TableCell>Use Case</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {appsData.map((app, index) => (
+        <TableRow
+          key={app.id}
+          sx={{
+            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+            "&:hover": { backgroundColor: "#f0f0f0" },
+          }}
+        >
+          <TableCell>{app.id}</TableCell>
+          <TableCell>{app.Org}</TableCell>
+          <TableCell>{app.appName}</TableCell>
+          <TableCell>
+            <Box sx={{
+              display: "inline-block",
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              bgcolor: app.color,
+              border: "1px solid #eee",
+              verticalAlign: "middle",
+              mr: 1,
+            }} />
+            {app.color}
+          </TableCell>
+          <TableCell>{app.selectedUseCase}</TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
                       )}
                     </Box>
                   </Box>
