@@ -1137,73 +1137,49 @@ export const AdminDashboard: React.FC = () => {
           </Card>
         )}
         {currentView === "Review Existing App" && (
-          <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: "auto" }}>
-            {apiError && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {apiError}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={fetchAppsData}
-                  sx={{ ml: 2 }}
-                >
-                  Retry
-                </Button>
-              </Alert>
-            )}
-            <Typography
-              variant="h6"
-              sx={{ color: "#1976d2", textAlign: "center", mb: 2 }}
-            >
-              Existing Applications
-            </Typography>
-            {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>URL</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {appsData.map((app, index) => (
-                    <TableRow
-                      key={app.id}
-                      sx={{
-                        backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
-                        "&:hover": { backgroundColor: "#f0f0f0" },
-                      }}
-                    >
-                      <TableCell>{app.id}</TableCell>
-                      <TableCell>{app.name}</TableCell>
-                      <TableCell>
-                        {app.url ? (
-                          <a href={app.url} target="_blank" rel="noopener noreferrer">
-                            {app.url}
-                          </a>
-                        ) : (
-                          "N/A"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {app.status === "in-progress" ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          app.status
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
+         <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
+  <Table stickyHeader>
+    <TableHead>
+      <TableRow>
+        <TableCell>ID</TableCell>
+        <TableCell>Organization</TableCell>
+        <TableCell>App Name</TableCell>
+        <TableCell>Brand Color</TableCell>
+        <TableCell>Use Case</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {appsData.map((app, index) => (
+        <TableRow
+          key={app.id}
+          sx={{
+            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+            "&:hover": { backgroundColor: "#f0f0f0" },
+          }}
+        >
+          <TableCell>{app.id}</TableCell>
+          <TableCell>{app.Org}</TableCell>
+          <TableCell>{app.appName}</TableCell>
+          <TableCell>
+            <Box sx={{
+              display: "inline-block",
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              bgcolor: app.color,
+              border: "1px solid #eee",
+              verticalAlign: "middle",
+              mr: 1,
+            }} />
+            {app.color}
+          </TableCell>
+          <TableCell>{app.selectedUseCase}</TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
         )}
       </Box>
     </Box>
