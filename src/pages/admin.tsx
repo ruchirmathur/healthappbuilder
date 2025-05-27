@@ -101,6 +101,7 @@ interface AppData {
   appName: string;
   color: string;
   selectedUseCase: string;
+  TenantId: string;
 }
 
 interface WorkflowData {
@@ -1054,7 +1055,7 @@ export const AdminDashboard: React.FC = () => {
 			          }}
 			        >
 			          <TableCell>{app.id}</TableCell>
-			          <TableCell>{app.Org}</TableCell>
+			          <TableCell>{app.TenantId}</TableCell>
 			          <TableCell>{app.appName}</TableCell>
 			          <TableCell>
 			            <Box sx={{
