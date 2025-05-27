@@ -192,6 +192,9 @@ export const AdminDashboard: React.FC = () => {
     redirect_url: "",
   });
 
+  // State for moving email address
+  const [showEmailInMenu, setShowEmailInMenu] = useState(false);
+
   // Fetch app listing when entering final step
   useEffect(() => {
     if (activeStep === 4) {
@@ -343,7 +346,7 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-    
+      // No-op
     }
   }, [isAuthenticated, getIdTokenClaims]);
 
@@ -428,6 +431,13 @@ export const AdminDashboard: React.FC = () => {
     logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
+  // Handler for moving email address when link is clicked
+  const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setShowEmailInMenu(true);
+  };
+
+  // --- RENDER ---
   const renderBuildStep = () => (
     <Card sx={{ mb: 2, boxShadow: theme.shadows[4], borderRadius: 4, bgcolor: "#f8fafb" }}>
       <CardContent>
@@ -508,6 +518,21 @@ export const AdminDashboard: React.FC = () => {
                   sx={{ mb: 3 }}
                 />
               ))}
+              {/* Show email link if not moved */}
+              {!showEmailInMenu && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography>
+                    Contact Email:{" "}
+                    <a
+                      href="#"
+                      onClick={handleEmailClick}
+                      style={{ color: "#1976d2", textDecoration: "underline", cursor: "pointer" }}
+                    >
+                      {webSecForm.email || "No email entered"}
+                    </a>
+                  </Typography>
+                </Box>
+              )}
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Button
                   variant="contained"
@@ -570,12 +595,36 @@ export const AdminDashboard: React.FC = () => {
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: theme => theme.zIndex.drawer + 1, backgroundColor: "#153a5b" }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "center", fontWeight: 600 }}>
-            <DashboardIcon sx={{ mr: 1 }} />
-            Multi-Tenant GenAI App Builder
-          </Typography>
-          <Box>
+        <Toolbar sx={{ position: "relative" }}>
+          {/* Centered Heading */}
+          <Box sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            pointerEvents: "none"
+          }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                textAlign: "center",
+                justifyContent: "center",
+                gap: 1,
+                pointerEvents: "auto"
+              }}
+            >
+              <DashboardIcon sx={{ mr: 1 }} />
+              Multi-Tenant GenAI App Builder
+            </Typography>
+          </Box>
+          {/* User/Account Button (remains right-aligned) */}
+          <Box sx={{ ml: "auto", zIndex: 1 }}>
             <Button
               color="inherit"
               onClick={handleMenuOpen}
@@ -594,6 +643,14 @@ export const AdminDashboard: React.FC = () => {
               onClose={handleMenuClose}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
+              {/* Show moved email in the menu if link was clicked */}
+              {showEmailInMenu && (
+                <MenuItem disabled>
+                  <Typography variant="body2" color="text.secondary">
+                    {webSecForm.email || "No email entered"}
+                  </Typography>
+                </MenuItem>
+              )}
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
             </Menu>
           </Box>
@@ -1035,48 +1092,47 @@ export const AdminDashboard: React.FC = () => {
                         </Box>
                       ) : (
                         <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
-			  <Table stickyHeader>
-			    <TableHead>
-			      <TableRow>
-			        <TableCell>ID</TableCell>
-			        <TableCell>Organization</TableCell>
-			        <TableCell>App Name</TableCell>
-			        <TableCell>Brand Color</TableCell>
-			        <TableCell>Use Case</TableCell>
-			      </TableRow>
-			    </TableHead>
-			    <TableBody>
-			      {appsData.map((app, index) => (
-			        <TableRow
-			          key={app.id}
-			          sx={{
-			            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
-			            "&:hover": { backgroundColor: "#f0f0f0" },
-			          }}
-			        >
-			          <TableCell>{app.id}</TableCell>
-			          <TableCell>{app.TenantId}</TableCell>
-			          <TableCell>{app.appName}</TableCell>
-			          <TableCell>
-			            <Box sx={{
-			              display: "inline-block",
-			              width: 24,
-			              height: 24,
-			              borderRadius: "50%",
-			              bgcolor: app.color,
-			              border: "1px solid #eee",
-			              verticalAlign: "middle",
-			              mr: 1,
-			            }} />
-			            {app.color}
-			          </TableCell>
-			          <TableCell>{app.selectedUseCase}</TableCell>
-			        </TableRow>
-			      ))}
-			    </TableBody>
-			  </Table>
-			</TableContainer>
-
+                          <Table stickyHeader>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>ID</TableCell>
+                                <TableCell>Organization</TableCell>
+                                <TableCell>App Name</TableCell>
+                                <TableCell>Brand Color</TableCell>
+                                <TableCell>Use Case</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {appsData.map((app, index) => (
+                                <TableRow
+                                  key={app.id}
+                                  sx={{
+                                    backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+                                    "&:hover": { backgroundColor: "#f0f0f0" },
+                                  }}
+                                >
+                                  <TableCell>{app.id}</TableCell>
+                                  <TableCell>{app.TenantId}</TableCell>
+                                  <TableCell>{app.appName}</TableCell>
+                                  <TableCell>
+                                    <Box sx={{
+                                      display: "inline-block",
+                                      width: 24,
+                                      height: 24,
+                                      borderRadius: "50%",
+                                      bgcolor: app.color,
+                                      border: "1px solid #eee",
+                                      verticalAlign: "middle",
+                                      mr: 1,
+                                    }} />
+                                    {app.color}
+                                  </TableCell>
+                                  <TableCell>{app.selectedUseCase}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       )}
                     </Box>
                   </Box>
@@ -1137,49 +1193,48 @@ export const AdminDashboard: React.FC = () => {
           </Card>
         )}
         {currentView === "Review Existing App" && (
-         <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
-  <Table stickyHeader>
-    <TableHead>
-      <TableRow>
-        <TableCell>ID</TableCell>
-        <TableCell>Organization</TableCell>
-        <TableCell>App Name</TableCell>
-        <TableCell>Brand Color</TableCell>
-        <TableCell>Use Case</TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {appsData.map((app, index) => (
-        <TableRow
-          key={app.id}
-          sx={{
-            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
-            "&:hover": { backgroundColor: "#f0f0f0" },
-          }}
-        >
-          <TableCell>{app.id}</TableCell>
-          <TableCell>{app.TenantId}</TableCell>
-          <TableCell>{app.appName}</TableCell>
-          <TableCell>
-            <Box sx={{
-              display: "inline-block",
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              bgcolor: app.color,
-              border: "1px solid #eee",
-              verticalAlign: "middle",
-              mr: 1,
-            }} />
-            {app.color}
-          </TableCell>
-          <TableCell>{app.selectedUseCase}</TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</TableContainer>
-
+          <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Organization</TableCell>
+                  <TableCell>App Name</TableCell>
+                  <TableCell>Brand Color</TableCell>
+                  <TableCell>Use Case</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {appsData.map((app, index) => (
+                  <TableRow
+                    key={app.id}
+                    sx={{
+                      backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+                      "&:hover": { backgroundColor: "#f0f0f0" },
+                    }}
+                  >
+                    <TableCell>{app.id}</TableCell>
+                    <TableCell>{app.TenantId}</TableCell>
+                    <TableCell>{app.appName}</TableCell>
+                    <TableCell>
+                      <Box sx={{
+                        display: "inline-block",
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        bgcolor: app.color,
+                        border: "1px solid #eee",
+                        verticalAlign: "middle",
+                        mr: 1,
+                      }} />
+                      {app.color}
+                    </TableCell>
+                    <TableCell>{app.selectedUseCase}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </Box>
     </Box>
