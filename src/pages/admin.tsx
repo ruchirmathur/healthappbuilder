@@ -106,7 +106,7 @@ interface WorkflowData {
   id: string;
   appName: string;
   customerName: string;
-  selectedUseCase: string;
+  selectedUseCase: string[]; // Changed from string to array
   color?: string;
 }
 
@@ -150,7 +150,7 @@ export const AdminDashboard: React.FC = () => {
     id: "",
     appName: "",
     customerName: "",
-    selectedUseCase: "",
+    selectedUseCase: [], // Changed from string to array
     color: "",
   });
   const [color, setColor] = useColor("#1976d2");
@@ -258,7 +258,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Frontend Deployment step: trigger-deploy with api_url
   const handleBuildStepContinue = async (step: number) => {
     if (step === 0) {
       if (validateApiForm()) await triggerDeploy();
@@ -278,11 +277,11 @@ export const AdminDashboard: React.FC = () => {
               repo: webBuildForm.repo,
               workflow_id: webBuildForm.workflow_id,
               inputs: {
-              client_id: webBuildForm.client_id,
-              okta_domain: webBuildForm.okta_domain,
-              redirect_url: webBuildForm.redirect_url,
-              api_url: apiForm.api_url,
-            }
+                client_id: webBuildForm.client_id,
+                okta_domain: webBuildForm.okta_domain,
+                redirect_url: webBuildForm.redirect_url,
+                api_url: apiForm.api_url,
+              }
             }),
           });
           if (!response.ok) throw new Error("Frontend deployment failed");
@@ -350,6 +349,12 @@ export const AdminDashboard: React.FC = () => {
       setCustomerNameError(isCustomerNameEmpty);
       if (isAppNameEmpty || isCustomerNameEmpty) return;
     }
+    if (activeStep === 1) {
+      if (workflowData.selectedUseCase.length === 0) {
+        setApiError("Please select at least one use case.");
+        return;
+      }
+    }
     setLoading(true);
     try {
       const response = await fetch(WRITE_URL, {
@@ -359,7 +364,7 @@ export const AdminDashboard: React.FC = () => {
           id: workflowData.id,
           TenantId: workflowData.customerName,
           appName: workflowData.appName,
-          selectedUseCase: workflowData.selectedUseCase,
+          selectedUseCase: workflowData.selectedUseCase, // Now array
           color: color.hex
         }),
       });
@@ -381,6 +386,19 @@ export const AdminDashboard: React.FC = () => {
 
   const allBuildStepsCompleted = () =>
     buildCompleted[0] && buildCompleted[1] && buildCompleted[2];
+
+  // Multi-select card toggle logic
+  const toggleUseCase = (label: string) => {
+    setWorkflowData(prev => {
+      const already = prev.selectedUseCase.includes(label);
+      return {
+        ...prev,
+        selectedUseCase: already
+          ? prev.selectedUseCase.filter(l => l !== label)
+          : [...prev.selectedUseCase, label],
+      };
+    });
+  };
 
   const renderBuildStep = () => (
     <Card sx={{ mb: 2, boxShadow: theme.shadows[4], borderRadius: 4, bgcolor: "#f8fafb" }}>
@@ -745,7 +763,7 @@ export const AdminDashboard: React.FC = () => {
                         mx: "auto",
                       }}
                     >
-                      Choose the type of GenAI dashboard or solution you want to build.
+                      Choose the type of GenAI dashboard or solution you want to build. You can select more than one.
                     </Typography>
                     <Box
                       sx={{
@@ -755,59 +773,60 @@ export const AdminDashboard: React.FC = () => {
                         gap: 4,
                       }}
                     >
-                      {useCaseOptions.map((option) => (
-                        <Tooltip title={option.label} arrow key={option.label}>
-                          <Card
-                            onClick={() =>
-                              setWorkflowData({
-                                ...workflowData,
-                                selectedUseCase: option.label,
-                              })
-                            }
-                            sx={{
-                              cursor: "pointer",
-                              borderRadius: 4,
-                              width: 320,
-                              minHeight: 140,
-                              boxShadow:
-                                workflowData.selectedUseCase === option.label
+                      {useCaseOptions.map((option) => {
+                        const isSelected = workflowData.selectedUseCase.includes(option.label);
+                        return (
+                          <Tooltip title={option.label} arrow key={option.label}>
+                            <Card
+                              onClick={() => toggleUseCase(option.label)}
+                              sx={{
+                                cursor: "pointer",
+                                borderRadius: 4,
+                                width: 320,
+                                minHeight: 140,
+                                boxShadow: isSelected
                                   ? "0 0 0 3px #1976d2"
                                   : theme.shadows[2],
-                              bgcolor:
-                                workflowData.selectedUseCase === option.label
+                                bgcolor: isSelected
                                   ? "#e3f2fd"
                                   : "#fff",
-                              textAlign: "center",
-                              p: 3,
-                              transition: "all 0.2s",
-                              "&:hover": {
-                                boxShadow: "0 0 0 3px #1976d2",
-                              },
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
-                              {option.icon}
-                            </Box>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                color:
-                                  workflowData.selectedUseCase === option.label
-                                    ? "#1976d2"
-                                    : "#333",
+                                textAlign: "center",
+                                p: 3,
+                                transition: "all 0.2s",
+                                "&:hover": {
+                                  boxShadow: "0 0 0 3px #1976d2",
+                                },
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
                               }}
                             >
-                              {option.label}
-                            </Typography>
-                          </Card>
-                        </Tooltip>
-                      ))}
+                              <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+                                {option.icon}
+                              </Box>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: isSelected ? "#1976d2" : "#333",
+                                }}
+                              >
+                                {option.label}
+                              </Typography>
+                            </Card>
+                          </Tooltip>
+                        );
+                      })}
                     </Box>
+                    {workflowData.selectedUseCase.length > 0 && (
+                      <Box sx={{ mt: 4, textAlign: "center" }}>
+                        <Typography variant="subtitle1" color="text.secondary">
+                          Selected:{" "}
+                          {workflowData.selectedUseCase.join(", ")}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </Fade>
               )}
@@ -914,8 +933,10 @@ export const AdminDashboard: React.FC = () => {
                             <TableCell>{workflowData.customerName}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell><b>Use Case</b></TableCell>
-                            <TableCell>{workflowData.selectedUseCase}</TableCell>
+                            <TableCell><b>Use Case(s)</b></TableCell>
+                            <TableCell>
+                              {workflowData.selectedUseCase.join(", ")}
+                            </TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell><b>Brand Color</b></TableCell>
