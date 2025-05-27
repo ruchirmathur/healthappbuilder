@@ -432,10 +432,11 @@ export const AdminDashboard: React.FC = () => {
   };
 
   // Handler for moving email address when link is clicked
-  const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    setShowEmailInMenu(true);
-  };
+const handleEmailClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.preventDefault();
+  setShowEmailInMenu(true);
+};
+
 
   // --- RENDER ---
   const renderBuildStep = () => (
@@ -523,7 +524,7 @@ export const AdminDashboard: React.FC = () => {
                 <Box sx={{ mb: 2 }}>
                   <Typography>
                     Contact Email:{" "}
-                  <button
+<button
   type="button"
   onClick={handleEmailClick}
   style={{
@@ -538,6 +539,7 @@ export const AdminDashboard: React.FC = () => {
 >
   {webSecForm.email || "No email entered"}
 </button>
+
 
                   </Typography>
                 </Box>
