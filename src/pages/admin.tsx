@@ -5,7 +5,6 @@ import {
   Typography,
   Drawer,
   CssBaseline,
-  IconButton,
   Box,
   List,
   ListItemButton,
@@ -148,7 +147,6 @@ export const AdminDashboard: React.FC = () => {
   const { logout, user, getIdTokenClaims, isAuthenticated } = useAuth0();
   const [currentView, setCurrentView] = useState("Create a New App");
   const [appsData, setAppsData] = useState<AppData[]>([]);
-  const [orgName, setOrgName] = useState<string | undefined>();
   const [workflowData, setWorkflowData] = useState<WorkflowData>({
     id: "",
     appName: "",
