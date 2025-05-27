@@ -98,7 +98,6 @@ const useCaseOptions = [
 
 interface AppData {
   id: string;
-  Org: string;
   appName: string;
   color: string;
   selectedUseCase: string;
@@ -1034,48 +1033,48 @@ export const AdminDashboard: React.FC = () => {
                           <CircularProgress />
                         </Box>
                       ) : (
-<TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
-  <Table stickyHeader>
-    <TableHead>
-      <TableRow>
-        <TableCell>ID</TableCell>
-        <TableCell>Organization</TableCell>
-        <TableCell>App Name</TableCell>
-        <TableCell>Brand Color</TableCell>
-        <TableCell>Use Case</TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {appsData.map((app, index) => (
-        <TableRow
-          key={app.id}
-          sx={{
-            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
-            "&:hover": { backgroundColor: "#f0f0f0" },
-          }}
-        >
-          <TableCell>{app.id}</TableCell>
-          <TableCell>{app.Org}</TableCell>
-          <TableCell>{app.appName}</TableCell>
-          <TableCell>
-            <Box sx={{
-              display: "inline-block",
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              bgcolor: app.color,
-              border: "1px solid #eee",
-              verticalAlign: "middle",
-              mr: 1,
-            }} />
-            {app.color}
-          </TableCell>
-          <TableCell>{app.selectedUseCase}</TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</TableContainer>
+                        <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
+			  <Table stickyHeader>
+			    <TableHead>
+			      <TableRow>
+			        <TableCell>ID</TableCell>
+			        <TableCell>Organization</TableCell>
+			        <TableCell>App Name</TableCell>
+			        <TableCell>Brand Color</TableCell>
+			        <TableCell>Use Case</TableCell>
+			      </TableRow>
+			    </TableHead>
+			    <TableBody>
+			      {appsData.map((app, index) => (
+			        <TableRow
+			          key={app.id}
+			          sx={{
+			            backgroundColor: index % 2 === 0 ? "white" : "#f9f9f9",
+			            "&:hover": { backgroundColor: "#f0f0f0" },
+			          }}
+			        >
+			          <TableCell>{app.id}</TableCell>
+			          <TableCell>{app.Org}</TableCell>
+			          <TableCell>{app.appName}</TableCell>
+			          <TableCell>
+			            <Box sx={{
+			              display: "inline-block",
+			              width: 24,
+			              height: 24,
+			              borderRadius: "50%",
+			              bgcolor: app.color,
+			              border: "1px solid #eee",
+			              verticalAlign: "middle",
+			              mr: 1,
+			            }} />
+			            {app.color}
+			          </TableCell>
+			          <TableCell>{app.selectedUseCase}</TableCell>
+			        </TableRow>
+			      ))}
+			    </TableBody>
+			  </Table>
+			</TableContainer>
 
                       )}
                     </Box>
