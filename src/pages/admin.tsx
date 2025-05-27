@@ -106,7 +106,7 @@ interface WorkflowData {
   id: string;
   appName: string;
   customerName: string;
-  selectedUseCase: string[]; // Changed from string to array
+  selectedUseCase: string[];
   color?: string;
 }
 
@@ -150,7 +150,7 @@ export const AdminDashboard: React.FC = () => {
     id: "",
     appName: "",
     customerName: "",
-    selectedUseCase: [], // Changed from string to array
+    selectedUseCase: [],
     color: "",
   });
   const [color, setColor] = useColor("#1976d2");
@@ -251,6 +251,16 @@ export const AdminDashboard: React.FC = () => {
         body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error("App creation failed");
+      const responseData = await response.json();
+
+      // Prepopulate webBuildForm fields from API response
+      setWebBuildForm(prev => ({
+        ...prev,
+        client_id: responseData.client_id || "",
+        okta_domain: responseData.okta_domain || "",
+        redirect_url: (responseData.callback_urls && responseData.callback_urls[0]) ? responseData.callback_urls[0] : "",
+      }));
+
       setBuildCompleted(prev => ({ ...prev, 1: true }));
       setBuildExpandedStep(2);
     } catch (error) {
@@ -364,7 +374,7 @@ export const AdminDashboard: React.FC = () => {
           id: workflowData.id,
           TenantId: workflowData.customerName,
           appName: workflowData.appName,
-          selectedUseCase: workflowData.selectedUseCase, // Now array
+          selectedUseCase: workflowData.selectedUseCase,
           color: color.hex
         }),
       });
